@@ -20,12 +20,19 @@ const auth = new GoogleAuth({
 
 // Helper function to get authenticated client
 const getAuthClient = async () => {
-  const client = await auth.getClient();
-  const token = await client.getAccessToken();
-  return token.token;
+  try {
+    const client = await auth.getClient();
+    const token = await client.getAccessToken();
+    return token.token;
+  } catch (error) {
+    console.error('Authentication error:', error);
+    throw error;
+  }
 };
 
 // API Routes
+
+// List agents
 app.get('/api/agents', async (req, res) => {
   try {
     const { projectId, region = 'us-central1' } = req.query;
@@ -53,6 +60,7 @@ app.get('/api/agents', async (req, res) => {
   }
 });
 
+// Get a specific agent
 app.get('/api/agents/:agentId', async (req, res) => {
   try {
     const { projectId, region = 'us-central1' } = req.query;
@@ -81,6 +89,7 @@ app.get('/api/agents/:agentId', async (req, res) => {
   }
 });
 
+// Create a new agent
 app.post('/api/agents', async (req, res) => {
   try {
     const { projectId, region = 'us-central1' } = req.query;
@@ -110,6 +119,7 @@ app.post('/api/agents', async (req, res) => {
   }
 });
 
+// Deploy an agent
 app.post('/api/agents/:agentId/deploy', async (req, res) => {
   try {
     const { projectId, region = 'us-central1' } = req.query;
@@ -139,6 +149,7 @@ app.post('/api/agents/:agentId/deploy', async (req, res) => {
   }
 });
 
+// Delete an agent
 app.delete('/api/agents/:agentId', async (req, res) => {
   try {
     const { projectId, region = 'us-central1' } = req.query;
@@ -167,6 +178,7 @@ app.delete('/api/agents/:agentId', async (req, res) => {
   }
 });
 
+// Query an agent
 app.post('/api/agents/:agentId/query', async (req, res) => {
   try {
     const { projectId, region = 'us-central1' } = req.query;
@@ -200,6 +212,13 @@ app.post('/api/agents/:agentId/query', async (req, res) => {
   }
 });
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date() });
+});
+
+// Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Authentication using: ${process.env.GOOGLE_APPLICATION_CREDENTIALS || 'Default credentials'}`);
 });
