@@ -1,28 +1,16 @@
+// src/services/agentEngineService.js
 import axios from 'axios';
-import { getAccessToken } from './authService';
 
-const API_VERSION = 'v1';
-const BASE_URL = 'https://us-central1-aiplatform.googleapis.com';
-
-// Create an axios instance with authentication
-const createAuthenticatedAxios = async () => {
-  const token = await getAccessToken();
-  return axios.create({
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
-  });
-};
+// Backend API URL
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 // List all agents in a project
 export const listAgents = async (projectId, region = 'us-central1') => {
-  const http = await createAuthenticatedAxios();
   try {
-    const response = await http.get(
-      `${BASE_URL}/${API_VERSION}/projects/${projectId}/locations/${region}/agents`
-    );
-    return response.data.agents || [];
+    const response = await axios.get(`${API_URL}/agents`, {
+      params: { projectId, region }
+    });
+    return response.data || [];
   } catch (error) {
     console.error('Error listing agents:', error);
     throw error;
@@ -31,11 +19,10 @@ export const listAgents = async (projectId, region = 'us-central1') => {
 
 // Get a specific agent
 export const getAgent = async (projectId, region, agentId) => {
-  const http = await createAuthenticatedAxios();
   try {
-    const response = await http.get(
-      `${BASE_URL}/${API_VERSION}/projects/${projectId}/locations/${region}/agents/${agentId}`
-    );
+    const response = await axios.get(`${API_URL}/agents/${agentId}`, {
+      params: { projectId, region }
+    });
     return response.data;
   } catch (error) {
     console.error('Error getting agent:', error);
@@ -45,12 +32,10 @@ export const getAgent = async (projectId, region, agentId) => {
 
 // Create a new agent
 export const createAgent = async (projectId, region, agentData) => {
-  const http = await createAuthenticatedAxios();
   try {
-    const response = await http.post(
-      `${BASE_URL}/${API_VERSION}/projects/${projectId}/locations/${region}/agents`,
-      agentData
-    );
+    const response = await axios.post(`${API_URL}/agents`, agentData, {
+      params: { projectId, region }
+    });
     return response.data;
   } catch (error) {
     console.error('Error creating agent:', error);
@@ -60,12 +45,10 @@ export const createAgent = async (projectId, region, agentData) => {
 
 // Deploy an agent
 export const deployAgent = async (projectId, region, agentId) => {
-  const http = await createAuthenticatedAxios();
   try {
-    const response = await http.post(
-      `${BASE_URL}/${API_VERSION}/projects/${projectId}/locations/${region}/agents/${agentId}:deploy`,
-      {}
-    );
+    const response = await axios.post(`${API_URL}/agents/${agentId}/deploy`, {}, {
+      params: { projectId, region }
+    });
     return response.data;
   } catch (error) {
     console.error('Error deploying agent:', error);
@@ -75,11 +58,10 @@ export const deployAgent = async (projectId, region, agentId) => {
 
 // Delete an agent
 export const deleteAgent = async (projectId, region, agentId) => {
-  const http = await createAuthenticatedAxios();
   try {
-    const response = await http.delete(
-      `${BASE_URL}/${API_VERSION}/projects/${projectId}/locations/${region}/agents/${agentId}`
-    );
+    const response = await axios.delete(`${API_URL}/agents/${agentId}`, {
+      params: { projectId, region }
+    });
     return response.data;
   } catch (error) {
     console.error('Error deleting agent:', error);
@@ -89,33 +71,16 @@ export const deleteAgent = async (projectId, region, agentId) => {
 
 // Test an agent
 export const queryAgent = async (projectId, region, agentId, query) => {
-  const http = await createAuthenticatedAxios();
   try {
-    const response = await http.post(
-      `${BASE_URL}/${API_VERSION}/projects/${projectId}/locations/${region}/agents/${agentId}:query`,
-      {
-        query: query,
-        maxResponseItems: 10
-      }
-    );
+    const response = await axios.post(`${API_URL}/agents/${agentId}/query`, {
+      query: query,
+      maxResponseItems: 10
+    }, {
+      params: { projectId, region }
+    });
     return response.data;
   } catch (error) {
     console.error('Error querying agent:', error);
-    throw error;
-  }
-};
-
-// Get agent metrics
-export const getAgentMetrics = async (projectId, region, agentId) => {
-  const http = await createAuthenticatedAxios();
-  try {
-    // This is a placeholder - you would use the appropriate API endpoint
-    const response = await http.get(
-      `${BASE_URL}/${API_VERSION}/projects/${projectId}/locations/${region}/agents/${agentId}/metrics`
-    );
-    return response.data;
-  } catch (error) {
-    console.error('Error getting agent metrics:', error);
     throw error;
   }
 };
