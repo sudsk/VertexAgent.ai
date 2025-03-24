@@ -14,7 +14,13 @@ const CreateAgent = ({ projectId, region }) => {
     modelId: 'gemini-1.5-pro',
     maxOutputTokens: 1024,
     temperature: 0.2,
-    systemInstruction: ''
+    systemInstruction: '',
+    // LangGraph specific fields
+    graphType: 'sequential',
+    stateDefinition: '',
+    // CrewAI specific fields
+    crewAgentCount: 2,
+    coordinationStrategy: 'sequential'
   });
   const [error, setError] = useState('');
 
@@ -167,11 +173,86 @@ const CreateAgent = ({ projectId, region }) => {
                 <option value="CUSTOM">Custom</option>
                 <option value="LANGCHAIN">LangChain</option>
                 <option value="LLAMAINDEX">LlamaIndex</option>
+                <option value="LANGGRAPH">LangGraph</option>
+                <option value="CREWAI">CrewAI</option>
               </select>
               <p className="mt-1 text-xs text-gray-500">
                 Select the framework you want to use for this agent
               </p>
             </div>
+
+            {formData.framework === 'LANGGRAPH' && (
+              <div className="mb-4 p-4 border border-gray-200 rounded-md bg-gray-50">
+                <h3 className="text-md font-medium mb-2">LangGraph Configuration</h3>
+                
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Graph Type
+                  </label>
+                  <select
+                    name="graphType"
+                    value={formData.graphType || 'sequential'}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="sequential">Sequential</option>
+                    <option value="branching">Branching</option>
+                    <option value="cyclic">Cyclic</option>
+                  </select>
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    State Definition
+                  </label>
+                  <textarea
+                    name="stateDefinition"
+                    value={formData.stateDefinition || ''}
+                    onChange={handleChange}
+                    placeholder='{"messages": [], "current_node": ""}'
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    rows={3}
+                  />
+                </div>
+              </div>
+            )}
+            
+            {formData.framework === 'CREWAI' && (
+              <div className="mb-4 p-4 border border-gray-200 rounded-md bg-gray-50">
+                <h3 className="text-md font-medium mb-2">CrewAI Configuration</h3>
+                
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Number of Agents
+                  </label>
+                  <input
+                    type="number"
+                    name="crewAgentCount"
+                    value={formData.crewAgentCount || 2}
+                    onChange={handleChange}
+                    min="1"
+                    max="5"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Coordination Strategy
+                  </label>
+                  <select
+                    name="coordinationStrategy"
+                    value={formData.coordinationStrategy || 'sequential'}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="sequential">Sequential</option>
+                    <option value="hierarchical">Hierarchical</option>
+                    <option value="consensus">Consensus</option>
+                  </select>
+                </div>
+              </div>
+            )}
             
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
