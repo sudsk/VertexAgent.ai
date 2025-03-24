@@ -223,6 +223,45 @@ const Dashboard = ({ projectId, region }) => {
           </div>
         </div>
       </div>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <h2 className="text-lg font-semibold mb-4">Supported Frameworks</h2>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="p-4 border border-gray-200 rounded-lg text-center">
+            <div className="h-12 w-12 bg-gray-100 rounded-full flex items-center justify-center text-gray-700 mx-auto mb-2">
+              <span className="text-lg font-bold">C</span>
+            </div>
+            <h3 className="font-medium">Custom</h3>
+          </div>
+          
+          <div className="p-4 border border-gray-200 rounded-lg text-center">
+            <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center text-green-700 mx-auto mb-2">
+              <span className="text-lg font-bold">LC</span>
+            </div>
+            <h3 className="font-medium">LangChain</h3>
+          </div>
+          
+          <div className="p-4 border border-gray-200 rounded-lg text-center">
+            <div className="h-12 w-12 bg-yellow-100 rounded-full flex items-center justify-center text-yellow-700 mx-auto mb-2">
+              <span className="text-lg font-bold">LI</span>
+            </div>
+            <h3 className="font-medium">LlamaIndex</h3>
+          </div>
+          
+          <div className="p-4 border border-gray-200 rounded-lg text-center">
+            <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 mx-auto mb-2">
+              <span className="text-lg font-bold">LG</span>
+            </div>
+            <h3 className="font-medium">LangGraph</h3>
+          </div>
+          
+          <div className="p-4 border border-gray-200 rounded-lg text-center">
+            <div className="h-12 w-12 bg-purple-100 rounded-full flex items-center justify-center text-purple-700 mx-auto mb-2">
+              <span className="text-lg font-bold">CR</span>
+            </div>
+            <h3 className="font-medium">CrewAI</h3>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
