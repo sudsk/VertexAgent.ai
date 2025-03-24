@@ -38,10 +38,10 @@ const CreateAgent = ({ projectId, region }) => {
       setError('Please set your Google Cloud Project ID first');
       return;
     }
-
+  
     setIsLoading(true);
     setError('');
-
+  
     try {
       // Prepare agent data for API
       const agentData = {
@@ -63,12 +63,37 @@ const CreateAgent = ({ projectId, region }) => {
           ]
         }
       };
-
+  
       // Add model based on the selected framework
       if (formData.framework === 'CUSTOM') {
         agentData.model = `projects/${projectId}/locations/${region}/publishers/google/models/${formData.modelId}`;
       }
-
+  
+      // Add framework-specific configuration
+      const frameworkConfig = {};
+      
+      if (formData.framework === 'LANGGRAPH') {
+        frameworkConfig.graphType = formData.graphType;
+        try {
+          frameworkConfig.stateDefinition = formData.stateDefinition ? 
+            JSON.parse(formData.stateDefinition) : {};
+        } catch (e) {
+          setError('Invalid state definition JSON. Please check the format.');
+          setIsLoading(false);
+          return;
+        }
+      }
+      
+      if (formData.framework === 'CREWAI') {
+        frameworkConfig.agentCount = parseInt(formData.crewAgentCount);
+        frameworkConfig.coordinationStrategy = formData.coordinationStrategy;
+      }
+      
+      // Add framework configuration if not empty
+      if (Object.keys(frameworkConfig).length > 0) {
+        agentData.frameworkConfig = frameworkConfig;
+      }
+  
       // Create the agent
       const createdAgent = await createAgent(projectId, region, agentData);
       
