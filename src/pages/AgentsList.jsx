@@ -138,7 +138,19 @@ const AgentsList = ({ projectId, region }) => {
                   </span>
                 </div>
                 <div className="col-span-2 flex items-center text-sm text-gray-600">
-                  {agent.framework || 'Custom'}
+                  {agent.framework === 'LANGGRAPH' ? (
+                    <span className="flex items-center">
+                      <span className="inline-block h-4 w-4 bg-blue-100 text-blue-600 rounded mr-1 text-xs font-bold text-center">G</span>
+                      LangGraph
+                    </span>
+                  ) : agent.framework === 'CREWAI' ? (
+                    <span className="flex items-center">
+                      <span className="inline-block h-4 w-4 bg-purple-100 text-purple-600 rounded mr-1 text-xs font-bold text-center">C</span>
+                      CrewAI
+                    </span>
+                  ) : (
+                    agent.framework || 'Custom'
+                  )}
                 </div>
                 <div className="col-span-2 flex items-center text-sm text-gray-600">
                   {new Date(agent.updateTime || Date.now()).toLocaleString()}
