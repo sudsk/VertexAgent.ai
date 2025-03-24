@@ -97,7 +97,10 @@ app.post('/api/agents', async (req, res) => {
     if (!projectId || !agentData) {
       return res.status(400).json({ error: 'Project ID and agent data are required' });
     }
-
+    
+    // Log the agent data for debugging
+    console.log('Creating agent with data:', JSON.stringify(agentData, null, 2));
+    
     const token = await getAuthClient();
     const response = await axios.post(
       `https://${region}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${region}/agents`,
