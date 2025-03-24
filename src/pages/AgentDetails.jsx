@@ -325,6 +325,48 @@ const AgentDetails = ({ projectId, region }) => {
                   </div>
                 </div>
               </div>
+
+              <div className="mb-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Framework</h3>
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500">Framework Type</p>
+                      <p className="font-medium">{agent.framework || 'Custom'}</p>
+                    </div>
+                    
+                    {agent.framework === 'LANGGRAPH' && agent.frameworkConfig && (
+                      <>
+                        <div>
+                          <p className="text-sm text-gray-500">Graph Type</p>
+                          <p className="font-medium">{agent.frameworkConfig.graphType || 'Sequential'}</p>
+                        </div>
+                        
+                        <div className="col-span-2">
+                          <p className="text-sm text-gray-500">State Definition</p>
+                          <pre className="bg-gray-100 p-2 rounded font-mono text-sm mt-1 whitespace-pre-wrap">
+                            {JSON.stringify(agent.frameworkConfig.stateDefinition || {}, null, 2)}
+                          </pre>
+                        </div>
+                      </>
+                    )}
+                    
+                    {agent.framework === 'CREWAI' && agent.frameworkConfig && (
+                      <>
+                        <div>
+                          <p className="text-sm text-gray-500">Agent Count</p>
+                          <p className="font-medium">{agent.frameworkConfig.agentCount || 2}</p>
+                        </div>
+                        
+                        <div>
+                          <p className="text-sm text-gray-500">Coordination Strategy</p>
+                          <p className="font-medium">{agent.frameworkConfig.coordinationStrategy || 'Sequential'}</p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
               
               {agent.tools && agent.tools.length > 0 && (
                 <div className="mb-6">
