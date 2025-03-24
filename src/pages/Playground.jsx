@@ -175,6 +175,50 @@ const Playground = ({ projectId, region }) => {
       </div>
       
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 flex flex-col overflow-hidden">
+        {selectedAgent && agents.find(a => a.name.split('/').pop() === selectedAgent)?.framework === 'LANGGRAPH' && (
+          <div className="mb-4 p-2 border border-gray-200 rounded-lg bg-gray-50">
+            <div className="flex items-center mb-2">
+              <span className="text-sm font-medium text-gray-700 mr-2">Graph Visualization:</span>
+              <span className="text-xs text-gray-500">(Simplified View)</span>
+            </div>
+            <div className="h-32 flex items-center justify-center border border-gray-200 rounded bg-white">
+              {/* Simple visualization for LangGraph */}
+              <div className="flex items-center">
+                <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mx-1">
+                  Input
+                </div>
+                <div className="w-8 h-0.5 bg-gray-300"></div>
+                <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mx-1">
+                  Process
+                </div>
+                <div className="w-8 h-0.5 bg-gray-300"></div>
+                <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mx-1">
+                  Output
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {selectedAgent && agents.find(a => a.name.split('/').pop() === selectedAgent)?.framework === 'CREWAI' && (
+          <div className="mb-4 p-2 border border-gray-200 rounded-lg bg-gray-50">
+            <div className="flex items-center mb-2">
+              <span className="text-sm font-medium text-gray-700 mr-2">Active Agents:</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <div className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">
+                Researcher
+              </div>
+              <div className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">
+                Analyst
+              </div>
+              <div className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">
+                Writer
+              </div>
+            </div>
+          </div>
+        )}
+        
         <div className="flex-1 p-4 overflow-y-auto bg-gray-50">
           {messages.map((message, index) => (
             <div key={index} className={`flex mb-4 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
