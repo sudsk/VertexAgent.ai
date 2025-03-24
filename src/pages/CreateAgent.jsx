@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createAgent, deployAgent } from '../services/agentEngineService';
+import FrameworkTemplates from '../components/FrameworkTemplates';
 
 const CreateAgent = ({ projectId, region }) => {
   const navigate = useNavigate();
@@ -32,6 +33,13 @@ const CreateAgent = ({ projectId, region }) => {
               name === 'temperature' ? parseFloat(value) : value
     });
   };
+
+  const handleSelectTemplate = (template) => {
+    setFormData({
+      ...formData,
+      ...template
+    });
+  };  
 
   const handleCreateAgent = async () => {
     if (!projectId) {
@@ -206,6 +214,14 @@ const CreateAgent = ({ projectId, region }) => {
               </p>
             </div>
 
+            // Add this after the framework selector:
+            {(formData.framework === 'LANGGRAPH' || formData.framework === 'CREWAI') && (
+              <FrameworkTemplates 
+                framework={formData.framework} 
+                onSelectTemplate={handleSelectTemplate} 
+              />
+            )}
+            
             {formData.framework === 'LANGGRAPH' && (
               <div className="mb-4 p-4 border border-gray-200 rounded-md bg-gray-50">
                 <h3 className="text-md font-medium mb-2">LangGraph Configuration</h3>
