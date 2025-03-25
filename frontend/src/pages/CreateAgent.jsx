@@ -226,6 +226,7 @@ const CreateAgent = ({ projectId, region }) => {
               <div className="mb-4 p-4 border border-gray-200 rounded-md bg-gray-50">
                 <h3 className="text-md font-medium mb-2">LangGraph Configuration</h3>
                 
+                {/* Graph Structure */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Graph Type
@@ -237,24 +238,96 @@ const CreateAgent = ({ projectId, region }) => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="sequential">Sequential</option>
+                    <option value="conditional">Conditional</option>
                     <option value="branching">Branching</option>
-                    <option value="cyclic">Cyclic</option>
                   </select>
                 </div>
                 
+                {/* Tool Configuration */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    State Definition
+                    Tools
+                  </label>
+                  <div className="space-y-2">
+                    <div className="flex items-center">
+                      <input type="checkbox" id="tool-search" className="h-4 w-4 text-blue-600" name="tools" value="search" 
+                             checked={formData.tools?.includes('search') || false}
+                             onChange={handleToolsChange} />
+                      <label htmlFor="tool-search" className="ml-2 text-sm text-gray-700">Search</label>
+                    </div>
+                    <div className="flex items-center">
+                      <input type="checkbox" id="tool-retrieve" className="h-4 w-4 text-blue-600" name="tools" value="retrieve" 
+                             checked={formData.tools?.includes('retrieve') || false}
+                             onChange={handleToolsChange} />
+                      <label htmlFor="tool-retrieve" className="ml-2 text-sm text-gray-700">Document Retrieval</label>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Node Configuration */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Agent Node Template
                   </label>
                   <textarea
-                    name="stateDefinition"
-                    value={formData.stateDefinition || ''}
+                    name="agentNodeTemplate"
+                    value={formData.agentNodeTemplate || ''}
                     onChange={handleChange}
-                    placeholder='{"messages": [], "current_node": ""}'
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="System message for the agent node..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
                     rows={3}
                   />
                 </div>
+                
+                {/* State Definition */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Initial State
+                  </label>
+                  <textarea
+                    name="initialState"
+                    value={formData.initialState || ''}
+                    onChange={handleChange}
+                    placeholder='{"messages": [], "current_node": ""}'
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
+                    rows={3}
+                  />
+                </div>
+            
+                {/* Vertex AI Integration */}
+                {formData.tools?.includes('retrieve') && (
+                  <div className="mb-4 border-t border-gray-200 pt-4">
+                    <h4 className="text-md font-medium mb-2">Vertex AI Search Configuration</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Data Store ID
+                        </label>
+                        <input
+                          type="text"
+                          name="dataStoreId"
+                          value={formData.dataStoreId || ''}
+                          onChange={handleChange}
+                          placeholder="sample-datastore"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Data Store Region
+                        </label>
+                        <input
+                          type="text"
+                          name="dataStoreRegion"
+                          value={formData.dataStoreRegion || 'us'}
+                          onChange={handleChange}
+                          placeholder="us"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             
@@ -262,35 +335,166 @@ const CreateAgent = ({ projectId, region }) => {
               <div className="mb-4 p-4 border border-gray-200 rounded-md bg-gray-50">
                 <h3 className="text-md font-medium mb-2">CrewAI Configuration</h3>
                 
+                {/* Process Configuration */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Number of Agents
-                  </label>
-                  <input
-                    type="number"
-                    name="crewAgentCount"
-                    value={formData.crewAgentCount || 2}
-                    onChange={handleChange}
-                    min="1"
-                    max="5"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Coordination Strategy
+                    Process Type
                   </label>
                   <select
-                    name="coordinationStrategy"
-                    value={formData.coordinationStrategy || 'sequential'}
+                    name="processType"
+                    value={formData.processType || 'sequential'}
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="sequential">Sequential</option>
                     <option value="hierarchical">Hierarchical</option>
-                    <option value="consensus">Consensus</option>
                   </select>
+                </div>
+                
+                {/* Agents Configuration */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between">
+                    <span>Agents</span>
+                    <button 
+                      type="button" 
+                      onClick={handleAddAgent}
+                      className="text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      + Add Agent
+                    </button>
+                  </label>
+                  
+                  {formData.agents?.map((agent, index) => (
+                    <div key={index} className="mb-4 p-3 border border-gray-200 rounded-md bg-white">
+                      <div className="flex justify-between mb-2">
+                        <h5 className="text-sm font-medium">Agent {index + 1}</h5>
+                        <button 
+                          type="button" 
+                          onClick={() => handleRemoveAgent(index)}
+                          className="text-xs text-red-600 hover:text-red-800"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 gap-3">
+                        <div>
+                          <label className="block text-xs text-gray-700 mb-1">
+                            Role
+                          </label>
+                          <input
+                            type="text"
+                            name={`agents[${index}].role`}
+                            value={agent.role || ''}
+                            onChange={(e) => handleAgentChange(index, 'role', e.target.value)}
+                            placeholder="Senior Engineer"
+                            className="w-full px-3 py-1 border border-gray-300 rounded-md text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-700 mb-1">
+                            Goal
+                          </label>
+                          <input
+                            type="text"
+                            name={`agents[${index}].goal`}
+                            value={agent.goal || ''}
+                            onChange={(e) => handleAgentChange(index, 'goal', e.target.value)}
+                            placeholder="Write high-quality code"
+                            className="w-full px-3 py-1 border border-gray-300 rounded-md text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-700 mb-1">
+                            Backstory
+                          </label>
+                          <textarea
+                            name={`agents[${index}].backstory`}
+                            value={agent.backstory || ''}
+                            onChange={(e) => handleAgentChange(index, 'backstory', e.target.value)}
+                            placeholder="You are a Senior Engineer with 10 years of experience..."
+                            className="w-full px-3 py-1 border border-gray-300 rounded-md text-sm"
+                            rows={2}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Tasks Configuration */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 flex justify-between">
+                    <span>Tasks</span>
+                    <button 
+                      type="button" 
+                      onClick={handleAddTask}
+                      className="text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      + Add Task
+                    </button>
+                  </label>
+                  
+                  {formData.tasks?.map((task, index) => (
+                    <div key={index} className="mb-4 p-3 border border-gray-200 rounded-md bg-white">
+                      <div className="flex justify-between mb-2">
+                        <h5 className="text-sm font-medium">Task {index + 1}</h5>
+                        <button 
+                          type="button" 
+                          onClick={() => handleRemoveTask(index)}
+                          className="text-xs text-red-600 hover:text-red-800"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 gap-3">
+                        <div>
+                          <label className="block text-xs text-gray-700 mb-1">
+                            Description
+                          </label>
+                          <textarea
+                            name={`tasks[${index}].description`}
+                            value={task.description || ''}
+                            onChange={(e) => handleTaskChange(index, 'description', e.target.value)}
+                            placeholder="Task description with variables like {input_variable}..."
+                            className="w-full px-3 py-1 border border-gray-300 rounded-md text-sm"
+                            rows={3}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-700 mb-1">
+                            Expected Output
+                          </label>
+                          <textarea
+                            name={`tasks[${index}].expected_output`}
+                            value={task.expected_output || ''}
+                            onChange={(e) => handleTaskChange(index, 'expected_output', e.target.value)}
+                            placeholder="Describe the expected format of output..."
+                            className="w-full px-3 py-1 border border-gray-300 rounded-md text-sm"
+                            rows={2}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-700 mb-1">
+                            Assigned Agent
+                          </label>
+                          <select
+                            name={`tasks[${index}].assigned_agent_index`}
+                            value={task.assigned_agent_index || 0}
+                            onChange={(e) => handleTaskChange(index, 'assigned_agent_index', parseInt(e.target.value))}
+                            className="w-full px-3 py-1 border border-gray-300 rounded-md text-sm"
+                          >
+                            {formData.agents?.map((agent, agentIndex) => (
+                              <option key={agentIndex} value={agentIndex}>
+                                {agent.role || `Agent ${agentIndex + 1}`}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
