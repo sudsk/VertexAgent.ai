@@ -1,0 +1,7 @@
+fastapi>=0.105.0
+uvicorn>=0.24.0
+python-dotenv>=1.0.0
+pydantic>=2.5.2
+google-auth>=2.23.4
+google-cloud-aiplatform>=1.36.4
+httpx>=0.25.2
