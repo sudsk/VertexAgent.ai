@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // API base URL (will point to your backend server)
-const API_URL = process.env.REACT_APP_API_URL || '/api';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 // List all agents in a project
 export const listAgents = async (projectId, region = 'us-central1') => {
