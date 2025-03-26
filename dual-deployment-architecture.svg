@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900">
+  <!-- Background -->
+  <rect width="1200" height="900" fill="#f8f9fa"/>
+  
+  <!-- Title -->
+  <text x="600" y="40" font-family="Arial, sans-serif" font-size="28" fill="#333" text-anchor="middle" font-weight="bold">VertexAgent.ai with Dual Deployment Options</text>
+  
+  <!-- Main Container Box -->
+  <rect x="50" y="70" width="1100" height="810" rx="10" ry="10" fill="#f8f9fa" stroke="#dadce0" stroke-width="2" stroke-dasharray="5,5"/>
+  
+  <!-- Google's Agent Engine Architecture (Left) -->
+  <rect x="80" y="200" width="450" height="260" rx="10" ry="10" fill="#f1f3f4" stroke="#4285f4" stroke-width="2"/>
+  <text x="305" y="230" font-family="Arial, sans-serif" font-size="20" fill="#4285f4" text-anchor="middle" font-weight="bold">Vertex AI Agent Engine</text>
+  
+  <!-- Agent Engine Icon -->
+  <rect x="255" y="250" width="100" height="80" rx="10" ry="10" fill="#e8f0fe" stroke="#4285f4" stroke-width="1"/>
+  <circle cx="305" cy="275" r="15" fill="#4285f4"/>
+  <rect x="290" y="295" width="30" height="20" rx="5" ry="5" fill="#4285f4"/>
+  
+  <!-- Agent Engine Components -->
+  <rect x="155" y="350" width="300" height="90" rx="5" ry="5" fill="white" stroke="#dadce0" stroke-width="1"/>
+  <text x="305" y="370" font-family="Arial, sans-serif" font-size="14" fill="#5f6368" text-anchor="middle">Agent Engine Components</text>
+  <line x1="155" y1="380" x2="455" y2="380" stroke="#dadce0" stroke-width="1"/>
+  
+  <!-- Components list for Agent Engine -->
+  <text x="175" y="400" font-family="Arial, sans-serif" font-size="12" fill="#5f6368">• Example store</text>
+  <text x="350" y="400" font-family="Arial, sans-serif" font-size="12" fill="#6c4cd5">Coming soon</text>
+  <text x="175" y="420" font-family="Arial, sans-serif" font-size="12" fill="#5f6368">• Managed session</text>
+  <text x="350" y="420" font-family="Arial, sans-serif" font-size="12" fill="#6c4cd5">Coming soon</text>
+  
+  <!-- Cloud Run Architecture (Right) -->
+  <rect x="670" y="200" width="450" height="260" rx="10" ry="10" fill="#e6f4ea" stroke="#0f9d58" stroke-width="2"/>
+  <text x="895" y="230" font-family="Arial, sans-serif" font-size="20" fill="#0f9d58" text-anchor="middle" font-weight="bold">Cloud Run Deployment</text>
+  
+  <!-- Cloud Run Icon -->
+  <rect x="845" y="250" width="100" height="80" rx="10" ry="10" fill="#e6f4ea" stroke="#0f9d58" stroke-width="1"/>
+  <path d="M870 275 L920 275 L895 310 Z" fill="#0f9d58"/>
+  
+  <!-- Cloud Run Components -->
+  <rect x="745" y="350" width="300" height="90" rx="5" ry="5" fill="white" stroke="#dadce0" stroke-width="1"/>
+  <text x="895" y="370" font-family="Arial, sans-serif" font-size="14" fill="#5f6368" text-anchor="middle">Cloud Run Services</text>
+  <line x1="745" y1="380" x2="1045" y2="380" stroke="#dadce0" stroke-width="1"/>
+  
+  <!-- Components list for Cloud Run -->
+  <text x="765" y="400" font-family="Arial, sans-serif" font-size="12" fill="#5f6368">• Python Agent Containers</text>
+  <text x="765" y="420" font-family="Arial, sans-serif" font-size="12" fill="#5f6368">• Custom API Endpoints</text>
+  
+  <!-- VertexAgent.ai Dashboard - Center Top -->
+  <rect x="375" y="90" width="450" height="80" rx="10" ry="10" fill="white" stroke="#1a73e8" stroke-width="2"/>
+  <text x="600" y="130" font-family="Arial, sans-serif" font-size="22" fill="#1a73e8" text-anchor="middle" font-weight="bold">VertexAgent.ai Dashboard</text>
+  <text x="600" y="155" font-family="Arial, sans-serif" font-size="14" fill="#5f6368" text-anchor="middle">Unified Management Interface</text>
+  
+  <!-- Deployment Options Banner -->
+  <rect x="300" y="490" width="600" height="60" rx="10" ry="10" fill="#fff8e1" stroke="#fbbc04" stroke-width="2"/>
+  <text x="600" y="525" font-family="Arial, sans-serif" font-size="18" fill="#5f6368" text-anchor="middle" font-weight="bold">Deployment Options</text>
+  
+  <!-- Frameworks - Center Bottom -->
+  <rect x="375" y="570" width="450" height="180" rx="10" ry="10" fill="#f3e8fd" stroke="#6c4cd5" stroke-width="2"/>
+  <text x="600" y="600" font-family="Arial, sans-serif" font-size="18" fill="#6c4cd5" text-anchor="middle" font-weight="bold">Framework Support</text>
+  
+  <rect x="395" y="620" width="410" height="110" rx="5" ry="5" fill="white" stroke="#dadce0" stroke-width="1"/>
+  <!-- Framework Icons and Labels -->
+  <text x="420" y="645" font-family="Arial, sans-serif" font-size="14" fill="#5f6368">• LangGraph</text>
+  <text x="420" y="675" font-family="Arial, sans-serif" font-size="14" fill="#5f6368">• LangChain</text>
+  <text x="420" y="705" font-family="Arial, sans-serif" font-size="14" fill="#5f6368">• LlamaIndex</text>
+  <text x="550" y="645" font-family="Arial, sans-serif" font-size="14" fill="#5f6368">• CrewAI</text>
+  <text x="550" y="675" font-family="Arial, sans-serif" font-size="14" fill="#5f6368">• Custom Agents</text>
+  <text x="550" y="705" font-family="Arial, sans-serif" font-size="14" fill="#5f6368">• FastAPI/Django</text>
+  <text x="720" y="645" font-family="Arial, sans-serif" font-size="14" fill="#5f6368">• Flask</text>
+  <text x="720" y="675" font-family="Arial, sans-serif" font-size="14" fill="#5f6368">• Streamlit</text>
+  <text x="720" y="705" font-family="Arial, sans-serif" font-size="14" fill="#5f6368">• Others...</text>
+  
+  <!-- Observability & Monitoring - Bottom -->
+  <rect x="100" y="780" width="1000" height="80" rx="10" ry="10" fill="#e8f0fe" stroke="#4285f4" stroke-width="2"/>
+  <text x="600" y="820" font-family="Arial, sans-serif" font-size="18" fill="#4285f4" text-anchor="middle" font-weight="bold">Unified Observability & Monitoring</text>
+  <text x="200" y="845" font-family="Arial, sans-serif" font-size="14" fill="#5f6368">Cloud Trace</text>
+  <text x="400" y="845" font-family="Arial, sans-serif" font-size="14" fill="#5f6368">Cloud Logging</text>
+  <text x="600" y="845" font-family="Arial, sans-serif" font-size="14" fill="#5f6368">Cloud Monitoring</text>
+  <text x="800" y="845" font-family="Arial, sans-serif" font-size="14" fill="#5f6368">Vertex Evaluation</text>
+  <text x="1000" y="845" font-family="Arial, sans-serif" font-size="14" fill="#5f6368">Custom Metrics</text>
+  
+  <!-- VertexAgent.ai Architecture Detail -->
+  <rect x="375" y="670" width="450" height="90" rx="5" ry="5" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1" stroke-dasharray="3,3"/>
+  <text x="600" y="695" font-family="Arial, sans-serif" font-size="16" fill="#1a73e8" text-anchor="middle" font-weight="bold">VertexAgent.ai Components</text>
+  
+  <!-- React Frontend -->
+  <rect x="395" y="715" width="190" height="30" rx="5" ry="5" fill="white" stroke="#dadce0" stroke-width="1"/>
+  <text x="490" y="735" font-family="Arial, sans-serif" font-size="12" fill="#5f6368" text-anchor="middle">React Frontend</text>
+  
+  <!-- FastAPI Backend -->
+  <rect x="615" y="715" width="190" height="30" rx="5" ry="5" fill="white" stroke="#dadce0" stroke-width="1"/>
+  <text x="710" y="735" font-family="Arial, sans-serif" font-size="12" fill="#5f6368" text-anchor="middle">FastAPI Backend</text>
+  
+  <!-- Connections -->
+  <!-- VertexAgent.ai to Agent Engine -->
+  <line x1="405" y1="170" x2="305" y2="200" stroke="#1a73e8" stroke-width="2"/>
+  <polygon points="310,195 305,200 315,205" fill="#1a73e8"/>
+  
+  <!-- VertexAgent.ai to Cloud Run -->
+  <line x1="795" y1="170" x2="895" y2="200" stroke="#0f9d58" stroke-width="2"/>
+  <polygon points="885,195 895,200 890,205" fill="#0f9d58"/>
+  
+  <!-- Agent Engine to Frameworks -->
+  <line x1="305" y1="460" x2="500" y2="570" stroke="#6c4cd5" stroke-width="2"/>
+  <polygon points="495,563 500,570 505,563" fill="#6c4cd5"/>
+  
+  <!-- Cloud Run to Frameworks -->
+  <line x1="895" y1="460" x2="700" y2="570" stroke="#6c4cd5" stroke-width="2"/>
+  <polygon points="695,563 700,570 705,563" fill="#6c4cd5"/>
+  
+  <!-- Frameworks to Observability -->
+  <line x1="600" y1="750" x2="600" y2="780" stroke="#4285f4" stroke-width="2"/>
+  <polygon points="595,770 600,780 605,770" fill="#4285f4"/>
+  
+  <!-- Deployment Banner Connections -->
+  <line x1="450" y1="490" x2="305" y2="460" stroke="#fbbc04" stroke-width="2" stroke-dasharray="5,3"/>
+  <polygon points="310,456 305,460 315,464" fill="#fbbc04"/>
+  
+  <line x1="750" y1="490" x2="895" y2="460" stroke="#fbbc04" stroke-width="2" stroke-dasharray="5,3"/>
+  <polygon points="885,456 895,460 890,464" fill="#fbbc04"/>
+  
+  <!-- Feature Callouts -->
+  <!-- Agent Engine Callout -->
+  <rect x="70" y="120" width="200" height="60" rx="5" ry="5" fill="white" stroke="#4285f4" stroke-width="1"/>
+  <text x="170" y="145" font-family="Arial, sans-serif" font-size="12" fill="#4285f4" text-anchor="middle" font-weight="bold">Managed LLM Infrastructure</text>
+  <text x="170" y="165" font-family="Arial, sans-serif" font-size="10" fill="#5f6368" text-anchor="middle">Easy deployment with minimal setup</text>
+  
+  <!-- Arrow to Agent Engine -->
+  <line x1="170" y1="180" x2="220" y2="200" stroke="#4285f4" stroke-width="1" stroke-dasharray="4,2"/>
+  <polygon points="213,195 220,200 217,205" fill="#4285f4"/>
+  
+  <!-- Cloud Run Callout -->
+  <rect x="930" y="120" width="200" height="60" rx="5" ry="5" fill="white" stroke="#0f9d58" stroke-width="1"/>
+  <text x="1030" y="145" font-family="Arial, sans-serif" font-size="12" fill="#0f9d58" text-anchor="middle" font-weight="bold">Custom Agent Infrastructure</text>
+  <text x="1030" y="165" font-family="Arial, sans-serif" font-size="10" fill="#5f6368" text-anchor="middle">Full control over agent implementation</text>
+  
+  <!-- Arrow to Cloud Run -->
+  <line x1="1030" y1="180" x2="980" y2="200" stroke="#0f9d58" stroke-width="1" stroke-dasharray="4,2"/>
+  <polygon points="973,195 980,200 977,205" fill="#0f9d58"/>
+  
+  <!-- Deployment Type Comparison -->
+  <rect x="300" y="560" width="160" height="90" rx="5" ry="5" fill="#f1f3f4" stroke="#dadce0" stroke-width="1" opacity="0.6"/>
+  <text x="380" y="580" font-family="Arial, sans-serif" font-size="10" fill="#5f6368" text-anchor="middle" font-weight="bold">AGENT ENGINE</text>
+  <text x="380" y="595" font-family="Arial, sans-serif" font-size="9" fill="#5f6368" text-anchor="middle">✓ Fully managed</text>
+  <text x="380" y="610" font-family="Arial, sans-serif" font-size="9" fill="#5f6368" text-anchor="middle">✓ Simplified deployment</text>
+  <text x="380" y="625" font-family="Arial, sans-serif" font-size="9" fill="#5f6368" text-anchor="middle">✓ Built-in scaling</text>
+  <text x="380" y="640" font-family="Arial, sans-serif" font-size="9" fill="#5f6368" text-anchor="middle">✓ Managed framework integration</text>
+  
+  <rect x="740" y="560" width="160" height="90" rx="5" ry="5" fill="#e6f4ea" stroke="#dadce0" stroke-width="1" opacity="0.6"/>
+  <text x="820" y="580" font-family="Arial, sans-serif" font-size="10" fill="#5f6368" text-anchor="middle" font-weight="bold">CLOUD RUN</text>
+  <text x="820" y="595" font-family="Arial, sans-serif" font-size="9" fill="#5f6368" text-anchor="middle">✓ Full customization</text>
+  <text x="820" y="610" font-family="Arial, sans-serif" font-size="9" fill="#5f6368" text-anchor="middle">✓ Custom dependencies</text>
+  <text x="820" y="625" font-family="Arial, sans-serif" font-size="9" fill="#5f6368" text-anchor="middle">✓ Integration with existing systems</text>
+  <text x="820" y="640" font-family="Arial, sans-serif" font-size="9" fill="#5f6368" text-anchor="middle">✓ Containerized deployment</text>
+</svg>
