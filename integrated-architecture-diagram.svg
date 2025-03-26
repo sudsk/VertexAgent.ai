@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
+  <!-- Background -->
+  <rect width="1200" height="800" fill="#f8f9fa"/>
+  
+  <!-- Title -->
+  <text x="600" y="40" font-family="Arial, sans-serif" font-size="28" fill="#333" text-anchor="middle" font-weight="bold">VertexAgent.ai Integration with Vertex AI Agent Engine</text>
+  
+  <!-- Main Container Box -->
+  <rect x="50" y="70" width="1100" height="700" rx="10" ry="10" fill="#f8f9fa" stroke="#dadce0" stroke-width="2" stroke-dasharray="5,5"/>
+  
+  <!-- Google's Agent Engine Architecture (Simplified) - Center -->
+  <rect x="400" y="190" width="400" height="260" rx="10" ry="10" fill="#f1f3f4" stroke="#4285f4" stroke-width="2"/>
+  <text x="600" y="220" font-family="Arial, sans-serif" font-size="20" fill="#4285f4" text-anchor="middle" font-weight="bold">Vertex AI Agent Engine</text>
+  
+  <!-- Agent Engine Icon -->
+  <rect x="550" y="240" width="100" height="80" rx="10" ry="10" fill="#e8f0fe" stroke="#4285f4" stroke-width="1"/>
+  <circle cx="600" cy="265" r="15" fill="#4285f4"/>
+  <rect x="585" y="285" width="30" height="20" rx="5" ry="5" fill="#4285f4"/>
+  
+  <!-- Agent Engine Components -->
+  <rect x="450" y="340" width="300" height="90" rx="5" ry="5" fill="white" stroke="#dadce0" stroke-width="1"/>
+  <text x="600" y="360" font-family="Arial, sans-serif" font-size="14" fill="#5f6368" text-anchor="middle">Agent Engine Components</text>
+  <line x1="450" y1="370" x2="750" y2="370" stroke="#dadce0" stroke-width="1"/>
+  
+  <!-- Components list -->
+  <text x="470" y="390" font-family="Arial, sans-serif" font-size="12" fill="#5f6368">• Example store</text>
+  <text x="645" y="390" font-family="Arial, sans-serif" font-size="12" fill="#6c4cd5">Coming soon</text>
+  <text x="470" y="410" font-family="Arial, sans-serif" font-size="12" fill="#5f6368">• Managed session</text>
+  <text x="645" y="410" font-family="Arial, sans-serif" font-size="12" fill="#6c4cd5">Coming soon</text>
+  
+  <!-- Client (VertexAgent.ai) - Left -->
+  <rect x="100" y="250" width="220" height="140" rx="10" ry="10" fill="white" stroke="#1a73e8" stroke-width="2"/>
+  <text x="210" y="280" font-family="Arial, sans-serif" font-size="18" fill="#1a73e8" text-anchor="middle" font-weight="bold">VertexAgent.ai</text>
+  <text x="210" y="305" font-family="Arial, sans-serif" font-size="14" fill="#5f6368" text-anchor="middle">Frontend + Backend</text>
+  
+  <!-- VertexAgent Frontend/Backend Components -->
+  <rect x="120" y="320" width="180" height="50" rx="5" ry="5" fill="#e8f0fe" stroke="#dadce0" stroke-width="1"/>
+  <text x="210" y="350" font-family="Arial, sans-serif" font-size="12" fill="#5f6368" text-anchor="middle">React UI + FastAPI Backend</text>
+  
+  <!-- Frameworks - Right -->
+  <rect x="880" y="120" width="250" height="260" rx="10" ry="10" fill="#f3e8fd" stroke="#6c4cd5" stroke-width="2"/>
+  <text x="1005" y="150" font-family="Arial, sans-serif" font-size="18" fill="#6c4cd5" text-anchor="middle" font-weight="bold">Frameworks</text>
+  
+  <rect x="900" y="170" width="210" height="190" rx="5" ry="5" fill="white" stroke="#dadce0" stroke-width="1"/>
+  <!-- Framework Icons and Labels -->
+  <text x="930" y="200" font-family="Arial, sans-serif" font-size="14" fill="#5f6368">• LangGraph</text>
+  <text x="930" y="230" font-family="Arial, sans-serif" font-size="14" fill="#5f6368">• LangChain</text>
+  <text x="930" y="260" font-family="Arial, sans-serif" font-size="14" fill="#5f6368">• LlamaIndex</text>
+  <text x="1055" y="260" font-family="Arial, sans-serif" font-size="12" fill="#6c4cd5">Coming soon</text>
+  <text x="930" y="290" font-family="Arial, sans-serif" font-size="14" fill="#5f6368">• CrewAI</text>
+  <text x="1035" y="290" font-family="Arial, sans-serif" font-size="12" fill="#6c4cd5">Coming soon</text>
+  <text x="930" y="320" font-family="Arial, sans-serif" font-size="14" fill="#5f6368">• Others...</text>
+  
+  <!-- Models - Right -->
+  <rect x="880" y="400" width="250" height="160" rx="10" ry="10" fill="#e6f4ea" stroke="#137333" stroke-width="2"/>
+  <text x="1005" y="430" font-family="Arial, sans-serif" font-size="18" fill="#137333" text-anchor="middle" font-weight="bold">Models</text>
+  
+  <rect x="900" y="450" width="210" height="90" rx="5" ry="5" fill="white" stroke="#dadce0" stroke-width="1"/>
+  <!-- Model Labels -->
+  <text x="930" y="480" font-family="Arial, sans-serif" font-size="14" fill="#5f6368">• Gemini</text>
+  <text x="930" y="510" font-family="Arial, sans-serif" font-size="14" fill="#5f6368">• Model Garden</text>
+  
+  <!-- Agent Developer (AgentSpace) - Bottom Left -->
+  <rect x="120" y="450" width="200" height="100" rx="10" ry="10" fill="#d2e3fc" stroke="#1a73e8" stroke-width="2"/>
+  <text x="220" y="490" font-family="Arial, sans-serif" font-size="16" fill="#1a73e8" text-anchor="middle" font-weight="bold">AgentSpace</text>
+  <text x="220" y="515" font-family="Arial, sans-serif" font-size="14" fill="#5f6368" text-anchor="middle">Agent Registry</text>
+  
+  <!-- Observability - Bottom Middle -->
+  <rect x="400" y="520" width="400" height="180" rx="10" ry="10" fill="#e8f0fe" stroke="#4285f4" stroke-width="2"/>
+  <text x="600" y="550" font-family="Arial, sans-serif" font-size="18" fill="#4285f4" text-anchor="middle" font-weight="bold">Observability</text>
+  
+  <rect x="430" y="570" width="100" height="100" rx="5" ry="5" fill="white" stroke="#dadce0" stroke-width="1"/>
+  <text x="480" y="625" font-family="Arial, sans-serif" font-size="12" fill="#5f6368" text-anchor="middle">Cloud Trace</text>
+  
+  <rect x="550" y="570" width="100" height="100" rx="5" ry="5" fill="white" stroke="#dadce0" stroke-width="1"/>
+  <text x="600" y="625" font-family="Arial, sans-serif" font-size="12" fill="#5f6368" text-anchor="middle">Cloud Logging</text>
+  
+  <rect x="670" y="570" width="100" height="100" rx="5" ry="5" fill="white" stroke="#dadce0" stroke-width="1"/>
+  <text x="720" y="625" font-family="Arial, sans-serif" font-size="12" fill="#5f6368" text-anchor="middle">Cloud Monitoring</text>
+  
+  <!-- Evaluation - Bottom Right -->
+  <rect x="880" y="580" width="250" height="120" rx="10" ry="10" fill="#fce8e6" stroke="#ea4335" stroke-width="2"/>
+  <text x="1005" y="610" font-family="Arial, sans-serif" font-size="18" fill="#ea4335" text-anchor="middle" font-weight="bold">Evaluation</text>
+  
+  <rect x="905" y="630" width="200" height="50" rx="5" ry="5" fill="white" stroke="#dadce0" stroke-width="1"/>
+  <text x="1005" y="660" font-family="Arial, sans-serif" font-size="14" fill="#5f6368" text-anchor="middle">Vertex Evaluation</text>
+  
+  <!-- CI/CD Section - Top -->
+  <rect x="400" y="100" width="400" height="60" rx="10" ry="10" fill="#fff8e1" stroke="#fbbc04" stroke-width="2"/>
+  <text x="600" y="135" font-family="Arial, sans-serif" font-size="16" fill="#5f6368" text-anchor="middle">CI/CD</text>
+  
+  <!-- Terraform Icon -->
+  <rect x="700" y="105" width="90" height="50" rx="10" ry="10" fill="white" stroke="#dadce0" stroke-width="1"/>
+  <text x="745" y="135" font-family="Arial, sans-serif" font-size="14" fill="#5f6368" text-anchor="middle">Terraform</text>
+  
+  <!-- Connections -->
+  <!-- VertexAgent.ai to Agent Engine -->
+  <line x1="320" y1="320" x2="400" y2="320" stroke="#1a73e8" stroke-width="2"/>
+  <polygon points="390,315 400,320 390,325" fill="#1a73e8"/>
+  
+  <!-- Agent Engine to Frameworks -->
+  <line x1="800" y1="260" x2="880" y2="260" stroke="#6c4cd5" stroke-width="2"/>
+  <polygon points="870,255 880,260 870,265" fill="#6c4cd5"/>
+  
+  <!-- Agent Engine to Models -->
+  <line x1="700" y1="450" x2="880" y2="450" stroke="#137333" stroke-width="2"/>
+  <polygon points="870,445 880,450 870,455" fill="#137333"/>
+  
+  <!-- Agent Engine to Observability -->
+  <line x1="600" y1="450" x2="600" y2="520" stroke="#4285f4" stroke-width="2"/>
+  <polygon points="595,510 600,520 605,510" fill="#4285f4"/>
+  
+  <!-- Agent Engine to Evaluation -->
+  <line x1="760" y1="450" x2="880" y2="580" stroke="#ea4335" stroke-width="2"/>
+  <polygon points="873,573 880,580 887,573" fill="#ea4335"/>
+  
+  <!-- AgentSpace to Agent Engine -->
+  <line x1="320" y1="450" x2="400" y2="380" stroke="#1a73e8" stroke-width="2"/>
+  <polygon points="392,385 400,380 395,372" fill="#1a73e8"/>
+  
+  <!-- Bidi arrow between VertexAgent and Engine -->
+  <line x1="320" y1="290" x2="400" y2="260" stroke="#1a73e8" stroke-width="2" stroke-dasharray="5,3"/>
+  <polygon points="390,255 400,260 395,265" fill="#1a73e8"/>
+  
+  <!-- CI/CD to Agent Engine -->
+  <line x1="600" y1="160" x2="600" y2="190" stroke="#fbbc04" stroke-width="2" stroke-dasharray="5,3"/>
+  <polygon points="595,180 600,190 605,180" fill="#fbbc04"/>
+  
+  <!-- VertexAgent.ai Architecture Detail -->
+  <rect x="60" y="590" width="300" height="160" rx="5" ry="5" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1" stroke-dasharray="3,3"/>
+  <text x="210" y="615" font-family="Arial, sans-serif" font-size="16" fill="#1a73e8" text-anchor="middle" font-weight="bold">VertexAgent.ai Components</text>
+  
+  <!-- React Frontend -->
+  <rect x="80" y="630" width="110" height="100" rx="5" ry="5" fill="white" stroke="#dadce0" stroke-width="1"/>
+  <text x="135" y="650" font-family="Arial, sans-serif" font-size="12" fill="#5f6368" text-anchor="middle">React Frontend</text>
+  <line x1="80" y1="660" x2="190" y2="660" stroke="#dadce0" stroke-width="1"/>
+  <text x="135" y="675" font-family="Arial, sans-serif" font-size="10" fill="#5f6368" text-anchor="middle">• Dashboard</text>
+  <text x="135" y="690" font-family="Arial, sans-serif" font-size="10" fill="#5f6368" text-anchor="middle">• Agent Creation</text>
+  <text x="135" y="705" font-family="Arial, sans-serif" font-size="10" fill="#5f6368" text-anchor="middle">• Framework Config</text>
+  <text x="135" y="720" font-family="Arial, sans-serif" font-size="10" fill="#5f6368" text-anchor="middle">• Playground</text>
+  
+  <!-- FastAPI Backend -->
+  <rect x="230" y="630" width="110" height="100" rx="5" ry="5" fill="white" stroke="#dadce0" stroke-width="1"/>
+  <text x="285" y="650" font-family="Arial, sans-serif" font-size="12" fill="#5f6368" text-anchor="middle">FastAPI Backend</text>
+  <line x1="230" y1="660" x2="340" y2="660" stroke="#dadce0" stroke-width="1"/>
+  <text x="285" y="675" font-family="Arial, sans-serif" font-size="10" fill="#5f6368" text-anchor="middle">• API Routes</text>
+  <text x="285" y="690" font-family="Arial, sans-serif" font-size="10" fill="#5f6368" text-anchor="middle">• Pydantic Models</text>
+  <text x="285" y="705" font-family="Arial, sans-serif" font-size="10" fill="#5f6368" text-anchor="middle">• Auth Integration</text>
+  <text x="285" y="720" font-family="Arial, sans-serif" font-size="10" fill="#5f6368" text-anchor="middle">• Vertex AI Service</text>
+  
+  <!-- Connection between React and FastAPI -->
+  <line x1="190" y1="680" x2="230" y2="680" stroke="#1a73e8" stroke-width="1.5" stroke-dasharray="3,2"/>
+  <polygon points="220,677 230,680 220,683" fill="#1a73e8"/>
+  
+  <!-- Connection from VertexAgent details to the main box -->
+  <line x1="210" y1="590" x2="210" y2="550" stroke="#1a73e8" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <polygon points="207,560 210,550 213,560" fill="#1a73e8"/>
+</svg>
