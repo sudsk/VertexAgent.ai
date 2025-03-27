@@ -41,38 +41,30 @@ class VertexAIService:
             response.raise_for_status()
             return response.json()
     
+    from google.cloud import aiplatform
+    
     async def create_agent(self, project_id: str, region: str, agent_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Creates a new agent."""
-        url = f"https://{region}-aiplatform.googleapis.com/v1beta1/projects/{project_id}/locations/{region}/reasoningEngines"
-
+        """Creates a new agent using the Python SDK instead of direct API calls."""
         
-        # Create a minimal agent with just the required fields
-        minimal_agent = {
-            "displayName": agent_data.get("displayName", "Unnamed Agent"),
-            "model": agent_data.get("model")
-        }
+        # Initialize the client for this specific request
+        aiplatform.init(project=project_id, location=region)
         
-        # Print the request data for debugging
-        print(f"Creating agent with data: {json.dumps(minimal_agent, indent=2)}")
-        
-        async with httpx.AsyncClient() as client:
-            token = await self._get_token()
-            try:
-                response = await client.post(
-                    url,
-                    json=minimal_agent,
-                    headers={
-                        "Authorization": f"Bearer {token}",
-                        "Content-Type": "application/json"
-                    }
-                )
-                response.raise_for_status()
-                return response.json()
-            except httpx.HTTPStatusError as e:
-                # Extract and print detailed error information
-                error_detail = e.response.text
-                print(f"HTTP Error: {error_detail}")
-                raise
+        try:
+            # Use the SDK to create a reasoning engine (agent)
+            agent = aiplatform.ReasoningEngine.create(
+                display_name=agent_data.get("displayName", "Unnamed Agent"),
+                model_name=agent_data.get("model"),
+            )
+            
+            # Return the agent details as a dict
+            return {
+                "name": agent.resource_name,
+                "displayName": agent.display_name,
+                # Add other fields as needed
+            }
+        except Exception as e:
+            print(f"Error creating agent via SDK: {str(e)}")
+            raise
     
     async def deploy_agent(self, project_id: str, region: str, agent_id: str) -> Dict[str, Any]:
         """Deploys an agent."""
