@@ -45,15 +45,21 @@ class VertexAIService:
         """Creates a new agent."""
         url = f"https://{region}-aiplatform.googleapis.com/v1beta1/projects/{project_id}/locations/{region}/agents"
         
+        # Create a minimal agent with just the required fields
+        minimal_agent = {
+            "displayName": agent_data.get("displayName", "Unnamed Agent"),
+            "model": agent_data.get("model")
+        }
+        
         # Print the request data for debugging
-        print(f"Creating agent with data: {json.dumps(agent_data, indent=2)}")
+        print(f"Creating agent with data: {json.dumps(minimal_agent, indent=2)}")
         
         async with httpx.AsyncClient() as client:
             token = await self._get_token()
             try:
                 response = await client.post(
                     url,
-                    json=agent_data,
+                    json=minimal_agent,
                     headers={
                         "Authorization": f"Bearer {token}",
                         "Content-Type": "application/json"
