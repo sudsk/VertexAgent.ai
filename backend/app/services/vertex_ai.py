@@ -43,7 +43,8 @@ class VertexAIService:
     
     async def create_agent(self, project_id: str, region: str, agent_data: Dict[str, Any]) -> Dict[str, Any]:
         """Creates a new agent."""
-        url = f"https://{region}-aiplatform.googleapis.com/v1beta1/projects/{project_id}/locations/{region}/agents"
+        url = f"https://{region}-aiplatform.googleapis.com/v1beta1/projects/{project_id}/locations/{region}/reasoningEngines"
+
         
         # Create a minimal agent with just the required fields
         minimal_agent = {
