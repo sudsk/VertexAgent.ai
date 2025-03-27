@@ -1,5 +1,5 @@
-from typing import Any, Dict, List, Optional, Union
-from pydantic import BaseModel, Field
+from typing import Any, Dict, List, Optional, Union, Annotated
+from pydantic import BaseModel, Field, RootModel
 
 class GenerationConfig(BaseModel):
     temperature: float = 0.2
@@ -38,8 +38,9 @@ class CrewAIConfig(BaseModel):
     agents: List[CrewAIAgentConfig]
     tasks: List[CrewAITaskConfig]
 
-class FrameworkConfig(BaseModel):
-    __root__: Union[LangGraphConfig, CrewAIConfig]
+# Using RootModel instead of __root__ field
+class FrameworkConfig(RootModel):
+    root: Union[LangGraphConfig, CrewAIConfig]
 
 class CreateAgentRequest(BaseModel):
     displayName: str
