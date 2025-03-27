@@ -44,18 +44,27 @@ class VertexAIService:
         """Creates a new agent."""
         url = f"https://{region}-aiplatform.googleapis.com/v1beta1/projects/{project_id}/locations/{region}/agents"
         
+        # Print the request data for debugging
+        print(f"Creating agent with data: {json.dumps(agent_data, indent=2)}")
+        
         async with httpx.AsyncClient() as client:
             token = await self._get_token()
-            response = await client.post(
-                url,
-                json=agent_data,
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "Content-Type": "application/json"
-                }
-            )
-            response.raise_for_status()
-            return response.json()
+            try:
+                response = await client.post(
+                    url,
+                    json=agent_data,
+                    headers={
+                        "Authorization": f"Bearer {token}",
+                        "Content-Type": "application/json"
+                    }
+                )
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPStatusError as e:
+                # Extract and print detailed error information
+                error_detail = e.response.text
+                print(f"HTTP Error: {error_detail}")
+                raise
     
     async def deploy_agent(self, project_id: str, region: str, agent_id: str) -> Dict[str, Any]:
         """Deploys an agent."""
