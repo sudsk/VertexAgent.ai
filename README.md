@@ -121,22 +121,6 @@ echo "VERTEX_REGION=us-central1" >> .env
 uvicorn app.main:app --reload --host 0.0.0.0 --port 5000
 ```
 
-#### Option B: Express (Node.js)
-
-```bash
-# Navigate to backend directory
-cd backend
-
-# Install dependencies
-npm install
-
-# Create .env file
-echo "GOOGLE_APPLICATION_CREDENTIALS=/path/to/your/keyfile.json" > .env
-
-# Start the server
-node index.js
-```
-
 ### 4. Set Up Frontend
 
 ```bash
@@ -164,10 +148,6 @@ For local development, you can run both services simultaneously:
 cd backend
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 uvicorn app.main:app --reload --host 0.0.0.0 --port 5000
-
-# Terminal 2: Start the backend (Express alternative)
-cd backend
-node index.js
 
 # Terminal 3: Start the frontend in development mode
 cd frontend
