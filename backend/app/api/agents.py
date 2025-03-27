@@ -42,6 +42,9 @@ async def create_agent(
 ) -> Dict:
     """Creates a new agent."""
     try:
+        # Debug print
+        print("Received request data:", request.dict())     
+        
         # Process the request and create agent data structure
         agent_data = {
             "displayName": request.displayName,
