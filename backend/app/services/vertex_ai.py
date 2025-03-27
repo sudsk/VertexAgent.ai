@@ -41,29 +41,46 @@ class VertexAIService:
             response.raise_for_status()
             return response.json()
     
-    from google.cloud import aiplatform
+    from vertexai import agent_engines
     
     async def create_agent(self, project_id: str, region: str, agent_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Creates a new agent using the Python SDK instead of direct API calls."""
+        """Creates a new agent using the Vertex AI Agent Engine SDK."""
         
-        # Initialize the client for this specific request
-        aiplatform.init(project=project_id, location=region)
+        # Initialize Vertex AI for this request
+        import vertexai
+        vertexai.init(project=project_id, location=region)
         
         try:
-            # Use the SDK to create a reasoning engine (agent)
-            agent = aiplatform.ReasoningEngine.create(
+            # Define a simple agent class that follows the Agent Engine interface
+            class SimpleAgent:
+                def __init__(self, project, location):
+                    self.project_id = project
+                    self.location = location
+                
+                def set_up(self):
+                    pass
+                
+                def query(self, input):
+                    return {"response": "This is a placeholder response."}
+            
+            # Create the agent
+            agent = SimpleAgent(project=project_id, location=region)
+            
+            # Use the agent_engines module to create and deploy
+            remote_agent = agent_engines.create(
+                agent,
+                requirements=["google-cloud-aiplatform", "requests"],
                 display_name=agent_data.get("displayName", "Unnamed Agent"),
-                model_name=agent_data.get("model"),
             )
             
-            # Return the agent details as a dict
+            # Return the created agent details
             return {
-                "name": agent.resource_name,
-                "displayName": agent.display_name,
+                "name": remote_agent.resource_name,
+                "displayName": agent_data.get("displayName", "Unnamed Agent"),
                 # Add other fields as needed
             }
         except Exception as e:
-            print(f"Error creating agent via SDK: {str(e)}")
+            print(f"Error creating agent via Agent Engine SDK: {str(e)}")
             raise
     
     async def deploy_agent(self, project_id: str, region: str, agent_id: str) -> Dict[str, Any]:
