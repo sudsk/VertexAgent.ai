@@ -11,9 +11,10 @@ class VertexAIService:
     def __init__(self):
         self.credentials, self.project_id = google.auth.default()
         self.location = os.getenv("VERTEX_REGION", "us-central1")
+        self.staging_bucket = os.getenv("VERTEXAI_STAGING_BUCKET", "staging_bucket")        
         
         # Initialize Vertex AI client
-        vertexai.init(project=self.project_id, location=self.location)
+        vertexai.init(project=self.project_id, location=self.location, staging_bucket=self.staging_bucket)
     
     async def list_agents(self, project_id: str, region: str) -> List[Dict[str, Any]]:
         """Lists all agents in a project using agent_engines.list()."""
