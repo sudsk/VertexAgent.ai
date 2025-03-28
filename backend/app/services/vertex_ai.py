@@ -1,10 +1,12 @@
 import os
-import json  # Added this import
 from typing import Any, Dict, List, Optional
+import json
 
 import google.auth
 from google.cloud import aiplatform
-import httpx
+import vertexai
+from vertexai import agent_engines
+
 
 class VertexAIService:
     def __init__(self):
@@ -12,133 +14,152 @@ class VertexAIService:
         self.location = os.getenv("VERTEX_REGION", "us-central1")
         
         # Initialize Vertex AI client
-        aiplatform.init(project=self.project_id, location=self.location)
+        vertexai.init(project=self.project_id, location=self.location)
     
     async def list_agents(self, project_id: str, region: str) -> List[Dict[str, Any]]:
         """Lists all agents in a project."""
-        url = f"https://{region}-aiplatform.googleapis.com/v1beta1/projects/{project_id}/locations/{region}/agents"
-        
-        async with httpx.AsyncClient() as client:
-            token = await self._get_token()
-            response = await client.get(
-                url,
-                headers={"Authorization": f"Bearer {token}"}
-            )
-            response.raise_for_status()
-            data = response.json()
-            return data.get("agents", [])
-    
-    async def get_agent(self, project_id: str, region: str, agent_id: str) -> Dict[str, Any]:
-        """Gets a specific agent."""
-        url = f"https://{region}-aiplatform.googleapis.com/v1beta1/projects/{project_id}/locations/{region}/agents/{agent_id}"
-        
-        async with httpx.AsyncClient() as client:
-            token = await self._get_token()
-            response = await client.get(
-                url,
-                headers={"Authorization": f"Bearer {token}"}
-            )
-            response.raise_for_status()
-            return response.json()
-    
-    from vertexai import agent_engines
-    
-    async def create_agent(self, project_id: str, region: str, agent_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Creates a new agent using the Vertex AI Agent Engine SDK."""
-        
-        # Initialize Vertex AI for this request
-        import vertexai
+        # Initialize for this request
         vertexai.init(project=project_id, location=region)
         
         try:
-            # Define a simple agent class that follows the Agent Engine interface
+            agents = []
+            # List reasoning engines (agents)
+            for agent in agent_engines.list():
+                agents.append({
+                    "name": agent.resource_name,
+                    "displayName": agent.display_name,
+                    "state": getattr(agent, "state", "UNKNOWN"),
+                    "createTime": getattr(agent, "create_time", ""),
+                    "updateTime": getattr(agent, "update_time", "")
+                })
+            return agents
+        except Exception as e:
+            print(f"Error listing agents: {str(e)}")
+            raise
+    
+    async def get_agent(self, project_id: str, region: str, agent_id: str) -> Dict[str, Any]:
+        """Gets a specific agent."""
+        # Initialize for this request
+        vertexai.init(project=project_id, location=region)
+        
+        try:
+            agent_name = f"projects/{project_id}/locations/{region}/reasoningEngines/{agent_id}"
+            agent = agent_engines.get(agent_name)
+            
+            return {
+                "name": agent.resource_name,
+                "displayName": agent.display_name,
+                "state": getattr(agent, "state", "UNKNOWN"),
+                "createTime": getattr(agent, "create_time", ""),
+                "updateTime": getattr(agent, "update_time", "")
+            }
+        except Exception as e:
+            print(f"Error getting agent: {str(e)}")
+            raise
+    
+    async def create_agent(self, project_id: str, region: str, agent_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Creates a new agent."""
+        # Initialize for this request
+        vertexai.init(project=project_id, location=region)
+        
+        try:
+            print(f"Creating agent with data: {json.dumps(agent_data, indent=2)}")
+            
+            # Create a simple agent class
             class SimpleAgent:
-                def __init__(self, project, location):
-                    self.project_id = project
-                    self.location = location
+                def __init__(self):
+                    self.model = agent_data.get("model", "").split("/")[-1]
+                    self.system_instruction = agent_data.get("systemInstruction", {}).get("parts", [{}])[0].get("text", "")
                 
                 def set_up(self):
+                    # Initialize any setup here
                     pass
                 
-                def query(self, input):
-                    return {"response": "This is a placeholder response."}
+                def query(self, input_text):
+                    # This is just a placeholder - actual logic will be handled by Agent Engine
+                    return {"response": "Placeholder response"}
             
-            # Create the agent
-            agent = SimpleAgent(project=project_id, location=region)
+            # Create an instance of the agent
+            agent = SimpleAgent()
             
-            # Use the agent_engines module to create and deploy
+            # Use agent_engines to create and deploy the agent
             remote_agent = agent_engines.create(
                 agent,
                 requirements=["google-cloud-aiplatform", "requests"],
                 display_name=agent_data.get("displayName", "Unnamed Agent"),
+                description=agent_data.get("description", ""),
             )
             
-            # Return the created agent details
             return {
                 "name": remote_agent.resource_name,
-                "displayName": agent_data.get("displayName", "Unnamed Agent"),
-                # Add other fields as needed
+                "displayName": remote_agent.display_name,
+                "state": getattr(remote_agent, "state", "UNKNOWN"),
+                "createTime": getattr(remote_agent, "create_time", ""),
+                "updateTime": getattr(remote_agent, "update_time", "")
             }
         except Exception as e:
-            print(f"Error creating agent via Agent Engine SDK: {str(e)}")
+            print(f"Error creating agent: {str(e)}")
             raise
     
     async def deploy_agent(self, project_id: str, region: str, agent_id: str) -> Dict[str, Any]:
         """Deploys an agent."""
-        url = f"https://{region}-aiplatform.googleapis.com/v1beta1/projects/{project_id}/locations/{region}/agents/{agent_id}:deploy"
+        # Initialize for this request
+        vertexai.init(project=project_id, location=region)
         
-        async with httpx.AsyncClient() as client:
-            token = await self._get_token()
-            response = await client.post(
-                url,
-                json={},
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "Content-Type": "application/json"
-                }
-            )
-            response.raise_for_status()
-            return response.json()
+        try:
+            agent_name = f"projects/{project_id}/locations/{region}/reasoningEngines/{agent_id}"
+            agent = agent_engines.get(agent_name)
+            
+            # Deploy the agent
+            agent.deploy()
+            
+            return {
+                "name": agent.resource_name,
+                "displayName": agent.display_name,
+                "state": "DEPLOYED",
+                "message": "Agent deployed successfully"
+            }
+        except Exception as e:
+            print(f"Error deploying agent: {str(e)}")
+            raise
     
     async def delete_agent(self, project_id: str, region: str, agent_id: str) -> Dict[str, Any]:
         """Deletes an agent."""
-        url = f"https://{region}-aiplatform.googleapis.com/v1beta1/projects/{project_id}/locations/{region}/agents/{agent_id}"
+        # Initialize for this request
+        vertexai.init(project=project_id, location=region)
         
-        async with httpx.AsyncClient() as client:
-            token = await self._get_token()
-            response = await client.delete(
-                url,
-                headers={"Authorization": f"Bearer {token}"}
-            )
-            response.raise_for_status()
-            return response.json()
+        try:
+            agent_name = f"projects/{project_id}/locations/{region}/reasoningEngines/{agent_id}"
+            agent = agent_engines.get(agent_name)
+            
+            # Delete the agent
+            agent.delete()
+            
+            return {
+                "name": agent_name,
+                "status": "deleted"
+            }
+        except Exception as e:
+            print(f"Error deleting agent: {str(e)}")
+            raise
     
     async def query_agent(self, project_id: str, region: str, agent_id: str, query: str, max_response_items: int = 10) -> Dict[str, Any]:
         """Queries an agent."""
-        url = f"https://{region}-aiplatform.googleapis.com/v1beta1/projects/{project_id}/locations/{region}/agents/{agent_id}:query"
+        # Initialize for this request
+        vertexai.init(project=project_id, location=region)
         
-        request_data = {
-            "query": query,
-            "maxResponseItems": max_response_items
-        }
-        
-        async with httpx.AsyncClient() as client:
-            token = await self._get_token()
-            response = await client.post(
-                url,
-                json=request_data,
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "Content-Type": "application/json"
-                }
-            )
-            response.raise_for_status()
-            return response.json()
-    
-    async def _get_token(self) -> str:
-        """Gets an OAuth token for API requests."""
-        if not self.credentials.valid:
-            # Use a request object to refresh credentials
-            from google.auth.transport.requests import Request
-            self.credentials.refresh(Request())
-        return self.credentials.token
+        try:
+            agent_name = f"projects/{project_id}/locations/{region}/reasoningEngines/{agent_id}"
+            agent = agent_engines.get(agent_name)
+            
+            # Query the agent
+            response = agent.query(input=query)
+            
+            return {
+                "textResponse": response.get("output", ""),
+                "actions": response.get("actions", []),
+                "messages": response.get("messages", [])
+            }
+        except Exception as e:
+            print(f"Error querying agent: {str(e)}")
+            raise
