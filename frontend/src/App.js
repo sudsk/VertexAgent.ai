@@ -35,7 +35,8 @@ function App() {
               <Route path="/agents" element={<AgentsList projectId={projectId} region={region} />} />
               <Route path="/agents/:agentId" element={<AgentDetails projectId={projectId} region={region} />} />
               <Route path="/create-agent" element={<CreateAgent projectId={projectId} region={region} />} />
-              <Route path="/playground/:agentId?" element={<Playground projectId={projectId} region={region} />} />
+              <Route path="/playground" element={<Playground projectId={projectId} region={region} />} />
+              <Route path="/playground/:agentId" element={<Playground projectId={projectId} region={region} />} />
             </Routes>
           </main>
         </div>
