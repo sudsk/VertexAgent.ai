@@ -9,6 +9,134 @@ from app.services.vertex_ai import VertexAIService
 router = APIRouter()
 vertex_service = VertexAIService()
 
+@router.post("/agents/playground")
+async def test_agent_locally(
+    request_data: Dict[str, Any],
+    query: str = Body(..., embed=True),
+    project_id: Optional[str] = Query(None, description="Google Cloud Project ID"),
+    projectId: Optional[str] = Query(None, description="Google Cloud Project ID (alternative param)"),
+    region: str = Query("us-central1", description="Region for Vertex AI services")
+) -> Dict:
+    """Tests an agent configuration locally without deploying."""
+    try:
+        # Use projectId if project_id is not provided
+        effective_project_id = project_id or projectId
+        if not effective_project_id:
+            raise HTTPException(status_code=400, detail="Project ID is required")
+            
+        # Extract configuration from request data
+        framework = request_data.get("framework", "CUSTOM")
+        model_id = request_data.get("modelId", "gemini-1.5-pro")
+        
+        # Extract system instruction
+        system_instruction = ""
+        if "systemInstruction" in request_data:
+            if isinstance(request_data["systemInstruction"], str):
+                system_instruction = request_data["systemInstruction"]
+            elif isinstance(request_data["systemInstruction"], dict) and "parts" in request_data["systemInstruction"]:
+                parts = request_data["systemInstruction"]["parts"]
+                if parts and "text" in parts[0]:
+                    system_instruction = parts[0]["text"]
+        
+        # Get generation config
+        gen_config = request_data.get("generationConfig", {})
+        temperature = gen_config.get("temperature", 0.2)
+        max_output_tokens = gen_config.get("maxOutputTokens", 1024)
+        
+        # Framework-specific configurations
+        framework_config = request_data.get("frameworkConfig", {})
+        
+        # Create a local agent instance based on framework type
+        if framework == "LANGCHAIN":
+            from vertexai.preview.reasoning_engines import LangchainAgent
+            
+            agent = LangchainAgent(
+                model=model_id,
+                temperature=temperature,
+                max_output_tokens=max_output_tokens
+            )
+            response = agent.query(input=query)
+            
+        elif framework == "LANGGRAPH":
+            # Import specific LangGraph components
+            from langchain_core.messages import HumanMessage
+            from langchain_google_vertexai import ChatVertexAI
+            from langgraph.graph import END, MessageGraph
+            from langgraph.prebuilt import ToolNode
+            
+            # Create a local LangGraph agent
+            model = ChatVertexAI(model=model_id, temperature=temperature, max_output_tokens=max_output_tokens)
+            builder = MessageGraph()
+            
+            # Add tools if specified
+            tools = framework_config.get("tools", [])
+            tool_objects = []  # Convert tool definitions to objects
+            
+            # Add nodes to the graph
+            model_with_tools = model.bind_tools(tool_objects)
+            builder.add_node("tools", model_with_tools)
+            
+            # Add tool node and edges
+            tool_node = ToolNode(tool_objects)
+            for tool in tool_objects:
+                tool_name = tool.__name__
+                builder.add_node(tool_name, tool_node)
+                builder.add_edge(tool_name, END)
+            
+            # Set entry point and build the graph
+            builder.set_entry_point("tools")
+            
+            # Define custom router based on graph type
+            graph_type = framework_config.get("graphType", "sequential")
+            # Simple router example - would need to be customized
+            def router(state):
+                if len(state) > 0 and hasattr(state[-1], "tool_calls") and state[-1].tool_calls:
+                    return state[-1].tool_calls[0].get("name", END)
+                return END
+            
+            builder.add_conditional_edges("tools", router)
+            
+            # Compile and invoke the graph
+            graph = builder.compile()
+            result = graph.invoke(HumanMessage(query))
+            
+            # Format the response
+            response = {
+                "output": result[-1].content if result else "",
+                "messages": [msg.to_dict() for msg in result] if result else []
+            }
+        
+        # Handle other frameworks similarly...
+        else:  # CUSTOM or other frameworks
+            # Create a simple agent with Vertex AI
+            from vertexai.generative_models import GenerativeModel
+            
+            model = GenerativeModel(model_id)
+            generation_config = {
+                "temperature": temperature,
+                "max_output_tokens": max_output_tokens
+            }
+            
+            result = model.generate_content(
+                query,
+                generation_config=generation_config,
+                system_instruction=system_instruction
+            )
+            
+            response = {
+                "output": result.text,
+                "messages": [{"content": result.text}]
+            }
+        
+        return {
+            "textResponse": response.get("output", ""),
+            "actions": response.get("actions", []),
+            "messages": response.get("messages", [])
+        }
+    except Exception as e:
+        print(f"Error in local playground: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error testing agent locally: {str(e)}")
+        
 @router.get("/agents")
 async def list_agents(
     project_id: Optional[str] = Query(None, description="Google Cloud Project ID"),
