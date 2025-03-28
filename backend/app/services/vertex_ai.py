@@ -7,7 +7,6 @@ from google.cloud import aiplatform
 import vertexai
 from vertexai import agent_engines
 
-
 class VertexAIService:
     def __init__(self):
         self.credentials, self.project_id = google.auth.default()
@@ -17,13 +16,12 @@ class VertexAIService:
         vertexai.init(project=self.project_id, location=self.location)
     
     async def list_agents(self, project_id: str, region: str) -> List[Dict[str, Any]]:
-        """Lists all agents in a project."""
-        # Initialize for this request
+        """Lists all agents in a project using agent_engines.list()."""
         vertexai.init(project=project_id, location=region)
         
         try:
+            # This follows the pattern in agent-starter-pack
             agents = []
-            # List reasoning engines (agents)
             for agent in agent_engines.list():
                 agents.append({
                     "name": agent.resource_name,
@@ -38,8 +36,7 @@ class VertexAIService:
             raise
     
     async def get_agent(self, project_id: str, region: str, agent_id: str) -> Dict[str, Any]:
-        """Gets a specific agent."""
-        # Initialize for this request
+        """Gets a specific agent using agent_engines.get()."""
         vertexai.init(project=project_id, location=region)
         
         try:
@@ -58,36 +55,30 @@ class VertexAIService:
             raise
     
     async def create_agent(self, project_id: str, region: str, agent_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Creates a new agent."""
-        # Initialize for this request
+        """Creates a new agent using the agent-starter-pack pattern."""
         vertexai.init(project=project_id, location=region)
         
         try:
             print(f"Creating agent with data: {json.dumps(agent_data, indent=2)}")
             
-            # Create a simple agent class
+            # Define a simple agent class similar to examples in agent-starter-pack
             class SimpleAgent:
                 def __init__(self):
-                    self.model = agent_data.get("model", "").split("/")[-1]
-                    self.system_instruction = agent_data.get("systemInstruction", {}).get("parts", [{}])[0].get("text", "")
+                    pass
                 
                 def set_up(self):
-                    # Initialize any setup here
                     pass
                 
                 def query(self, input_text):
-                    # This is just a placeholder - actual logic will be handled by Agent Engine
                     return {"response": "Placeholder response"}
             
-            # Create an instance of the agent
+            # Create and deploy using agent_engines.create()
             agent = SimpleAgent()
-            
-            # Use agent_engines to create and deploy the agent
             remote_agent = agent_engines.create(
                 agent,
                 requirements=["google-cloud-aiplatform", "requests"],
                 display_name=agent_data.get("displayName", "Unnamed Agent"),
-                description=agent_data.get("description", ""),
+                description=agent_data.get("description", "")
             )
             
             return {
@@ -102,57 +93,44 @@ class VertexAIService:
             raise
     
     async def deploy_agent(self, project_id: str, region: str, agent_id: str) -> Dict[str, Any]:
-        """Deploys an agent."""
-        # Initialize for this request
+        """Deploys an agent using the agent-starter-pack pattern."""
         vertexai.init(project=project_id, location=region)
         
         try:
             agent_name = f"projects/{project_id}/locations/{region}/reasoningEngines/{agent_id}"
             agent = agent_engines.get(agent_name)
-            
-            # Deploy the agent
             agent.deploy()
             
             return {
                 "name": agent.resource_name,
                 "displayName": agent.display_name,
-                "state": "DEPLOYED",
-                "message": "Agent deployed successfully"
+                "state": "DEPLOYED"
             }
         except Exception as e:
             print(f"Error deploying agent: {str(e)}")
             raise
     
     async def delete_agent(self, project_id: str, region: str, agent_id: str) -> Dict[str, Any]:
-        """Deletes an agent."""
-        # Initialize for this request
+        """Deletes an agent using the agent-starter-pack pattern."""
         vertexai.init(project=project_id, location=region)
         
         try:
             agent_name = f"projects/{project_id}/locations/{region}/reasoningEngines/{agent_id}"
             agent = agent_engines.get(agent_name)
-            
-            # Delete the agent
             agent.delete()
             
-            return {
-                "name": agent_name,
-                "status": "deleted"
-            }
+            return {"status": "deleted"}
         except Exception as e:
             print(f"Error deleting agent: {str(e)}")
             raise
     
     async def query_agent(self, project_id: str, region: str, agent_id: str, query: str, max_response_items: int = 10) -> Dict[str, Any]:
-        """Queries an agent."""
-        # Initialize for this request
+        """Queries an agent using the agent-starter-pack pattern."""
         vertexai.init(project=project_id, location=region)
         
         try:
             agent_name = f"projects/{project_id}/locations/{region}/reasoningEngines/{agent_id}"
             agent = agent_engines.get(agent_name)
-            
-            # Query the agent
             response = agent.query(input=query)
             
             return {
