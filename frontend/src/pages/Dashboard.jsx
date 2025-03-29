@@ -181,7 +181,7 @@ const Dashboard = ({ projectId, region }) => {
             <div>
               <h3 className="text-md font-medium">Define your agent</h3>
               <p className="text-sm text-gray-600 mt-1">
-                Choose a framework (LangChain, LlamaIndex) and define your agent configuration
+                Choose a framework (LangChain, LangGraph, etc.) and define your agent configuration
               </p>
             </div>
           </div>
@@ -191,9 +191,9 @@ const Dashboard = ({ projectId, region }) => {
               2
             </div>
             <div>
-              <h3 className="text-md font-medium">Deploy to Agent Engine</h3>
+              <h3 className="text-md font-medium">Test in local playground</h3>
               <p className="text-sm text-gray-600 mt-1">
-                Register and deploy your agent on Vertex AI
+                Try your agent configuration in the local playground before deployment
               </p>
             </div>
           </div>
@@ -203,9 +203,9 @@ const Dashboard = ({ projectId, region }) => {
               3
             </div>
             <div>
-              <h3 className="text-md font-medium">Test in the playground</h3>
+              <h3 className="text-md font-medium">Deploy to Agent Engine</h3>
               <p className="text-sm text-gray-600 mt-1">
-                Try out your agent with different inputs to ensure it works as expected
+                When satisfied with your agent's performance, deploy it to Vertex AI
               </p>
             </div>
           </div>
