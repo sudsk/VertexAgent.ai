@@ -115,3 +115,19 @@ export const getAgentMetrics = async (projectId, region, agentId) => {
     ]
   };
 };
+
+// Add to src/services/agentEngineService.js
+export const testAgentLocally = async (projectId, region, testData) => {
+  try {
+    const response = await axios.post(`${API_URL}/agents/playground`, 
+      testData, 
+      {
+        params: { projectId, region }
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error testing agent locally:', error);
+    throw error;
+  }
+};
