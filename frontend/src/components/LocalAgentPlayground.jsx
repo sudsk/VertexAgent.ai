@@ -11,6 +11,21 @@ const LocalAgentPlayground = ({ projectId, region }) => {
   const [error, setError] = useState('');
   
   // ... your other local playground code
+  useEffect(() => {
+    // Check if we have a configuration in localStorage
+    const savedConfig = localStorage.getItem('testAgentConfig');
+    if (savedConfig) {
+      try {
+        const config = JSON.parse(savedConfig);
+        setAgentConfig(config);
+        
+        // Clear the stored configuration
+        localStorage.removeItem('testAgentConfig');
+      } catch (error) {
+        console.error('Error parsing saved configuration:', error);
+      }
+    }
+  }, []);  
 
   // Function to deploy the agent and navigate to the deployed playground
   const handleDeployToVertexAI = async () => {
