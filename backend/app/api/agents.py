@@ -12,7 +12,6 @@ vertex_service = VertexAIService()
 @router.post("/agents/playground")
 async def test_agent_locally(
     request_data: Dict[str, Any],
-    query: str = Body(..., embed=True),
     project_id: Optional[str] = Query(None, description="Google Cloud Project ID"),
     projectId: Optional[str] = Query(None, description="Google Cloud Project ID (alternative param)"),
     region: str = Query("us-central1", description="Region for Vertex AI services")
@@ -27,6 +26,10 @@ async def test_agent_locally(
         # Extract configuration from request data
         framework = request_data.get("framework", "CUSTOM")
         model_id = request_data.get("modelId", "gemini-1.5-pro")
+        query = request_data.get("query", "")
+        
+        if not query:
+            raise HTTPException(status_code=400, detail="Query is required")
         
         # Extract system instruction
         system_instruction = ""
@@ -39,9 +42,8 @@ async def test_agent_locally(
                     system_instruction = parts[0]["text"]
         
         # Get generation config
-        gen_config = request_data.get("generationConfig", {})
-        temperature = gen_config.get("temperature", 0.2)
-        max_output_tokens = gen_config.get("maxOutputTokens", 1024)
+        temperature = request_data.get("temperature", 0.2)
+        max_output_tokens = request_data.get("maxOutputTokens", 1024)
         
         # Framework-specific configurations
         framework_config = request_data.get("frameworkConfig", {})
