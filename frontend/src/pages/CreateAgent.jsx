@@ -335,6 +335,42 @@ const CreateAgent = ({ projectId, region }) => {
     );
   }
 
+  // Function to test the agent before deploying
+  const handleTestBeforeDeploying = () => {
+    if (!formData.displayName) {
+      // Show error or validation message
+      return;
+    }
+    
+    // Prepare the agent configuration
+    const agentConfig = {
+      displayName: formData.displayName,
+      description: formData.description || '',
+      framework: formData.framework,
+      modelId: formData.modelId,
+      temperature: formData.temperature,
+      maxOutputTokens: formData.maxOutputTokens,
+      systemInstruction: formData.systemInstruction,
+      // Framework-specific fields
+      ...(formData.framework === 'LANGGRAPH' && {
+        graphType: formData.graphType,
+        tools: formData.tools,
+        initialState: formData.initialState,
+      }),
+      ...(formData.framework === 'CREWAI' && {
+        processType: formData.processType,
+        agents: formData.agents,
+        tasks: formData.tasks,
+      }),
+    };
+    
+    // Store the configuration in localStorage to pass it to the playground
+    localStorage.setItem('testAgentConfig', JSON.stringify(agentConfig));
+    
+    // Navigate to the local playground
+    navigate('/playground');
+  };
+  
   return (
     <div className="container mx-auto px-4">
       <h1 className="text-2xl font-bold mb-6">Create a New Agent</h1>
@@ -802,6 +838,13 @@ const CreateAgent = ({ projectId, region }) => {
                 </div>
                 
                 <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleTestBeforeDeploying}
+                    className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    Test Before Deploying
+                  </button>                  
                   <button
                     onClick={handleCreateAgent}
                     disabled={!formData.displayName || isLoading}
