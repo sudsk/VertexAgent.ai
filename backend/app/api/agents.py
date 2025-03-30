@@ -95,14 +95,23 @@ async def test_agent_locally(
         
             # Create a local agent instance based on framework type
             if framework == "LANGCHAIN":
-                from vertexai.preview.reasoning_engines import LangchainAgent
+                from app.services.langchain_service import LangChainService
                 
-                agent = LangchainAgent(
-                    model=model_id,
+                # Get tool definitions from framework config
+                tools = framework_config.get("tools", [])
+                
+                # Create LangChain service
+                langchain_service = LangChainService()
+                
+                # Run agent
+                response = langchain_service.run_agent_with_tools(
+                    query=query,
+                    model_id=model_id,
                     temperature=temperature,
-                    max_output_tokens=max_output_tokens
+                    max_tokens=max_output_tokens,
+                    system_instruction=system_instruction,
+                    tools=tools
                 )
-                response = agent.query(input=query)
                 
             elif framework == "LANGGRAPH":
                 # Import specific LangGraph components
