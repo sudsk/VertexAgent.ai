@@ -928,3 +928,71 @@ async def debug_all_agents(db: Session = Depends(get_db)) -> List[Dict]:
         ]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error listing debug agents: {str(e)}")
+
+# Add to backend/app/api/agents.py
+
+@router.post("/custom-tools")
+async def create_custom_tool(
+    name: str,
+    description: str,
+    code: str,
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """Creates a new custom tool."""
+    try:
+        from app.services.custom_tool_service import CustomToolService
+        
+        tool = CustomToolService.create_tool(db, name, description, code)
+        
+        return {
+            "id": tool.id,
+            "name": tool.name,
+            "description": tool.description,
+            "created_at": tool.created_at.isoformat()
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating custom tool: {str(e)}")
+
+@router.get("/custom-tools")
+async def list_custom_tools(
+    db: Session = Depends(get_db)
+) -> List[Dict[str, Any]]:
+    """Lists all custom tools."""
+    try:
+        from app.services.custom_tool_service import CustomToolService
+        
+        tools = CustomToolService.list_tools(db)
+        
+        return [
+            {
+                "id": tool.id,
+                "name": tool.name,
+                "description": tool.description,
+                "created_at": tool.created_at.isoformat()
+            }
+            for tool in tools
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error listing custom tools: {str(e)}")
+
+@router.post("/custom-tools/{tool_id}/execute")
+async def execute_custom_tool(
+    tool_id: str,
+    params: Dict[str, Any],
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """Executes a custom tool with parameters."""
+    try:
+        from app.services.custom_tool_service import CustomToolService
+        
+        result = CustomToolService.execute_tool(db, tool_id, params)
+        
+        return {
+            "result": result
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error executing custom tool: {str(e)}")
