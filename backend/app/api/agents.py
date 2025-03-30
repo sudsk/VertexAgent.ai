@@ -366,6 +366,10 @@ async def get_agent(
         if not effective_project_id:
             raise HTTPException(status_code=400, detail="Project ID is required")
         
+        # Handle local agent IDs (which might start with "local-")
+        if agent_id.startswith("local-"):
+            agent_id = agent_id[6:]  # Remove "local-" prefix
+            
         # First, check if the agent exists in the database
         agent = db.query(Agent).filter(Agent.id == agent_id).first()
         
