@@ -143,7 +143,9 @@ const Dashboard = ({ projectId, region }) => {
                     <td className="py-3 px-4 text-sm">{new Date(agent.updateTime || Date.now()).toLocaleString()}</td>
                     <td className="py-3 px-4 text-right">
                       <Link 
-                        to={`/agents/${agent.name.split('/').pop()}`} 
+                        to={`/agents/${typeof agent.name === 'string' && agent.name.includes('/') 
+                          ? agent.name.split('/').pop() 
+                          : agent.id}`} 
                         className="text-blue-600 hover:text-blue-800 mx-1"
                       >
                         View
