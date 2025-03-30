@@ -1,10 +1,12 @@
 import json
 from typing import Dict, List, Optional, Any
-
+from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, Query
-
+from datetime import datetime
+import uuid
 from app.models.agent import CreateAgentRequest, AgentResponse
 from app.services.vertex_ai import VertexAIService
+from app.database import get_db, Agent, Deployment, AgentTest
 
 router = APIRouter()
 vertex_service = VertexAIService()
@@ -141,19 +143,80 @@ async def test_agent_locally(
         
 @router.get("/agents")
 async def list_agents(
-    project_id: Optional[str] = Query(None, description="Google Cloud Project ID"),
-    projectId: Optional[str] = Query(None, description="Google Cloud Project ID (alternative param)"),
-    region: str = Query("us-central1", description="Region for Vertex AI services")
+    project_id: Optional[str] = Query(None),
+    projectId: Optional[str] = Query(None),
+    region: str = Query("us-central1"),
+    deployment_type: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    db: Session = Depends(get_db)    
 ) -> List[Dict]:
-    """Lists all agents in a project."""
+    """Lists all agents in the database with optional filters."""
     try:
         # Use projectId if project_id is not provided
         effective_project_id = project_id or projectId
         if not effective_project_id:
             raise HTTPException(status_code=400, detail="Project ID is required")
+
+        # Base query
+        query = db.query(Agent)
+        
+        # Apply filters
+        if status:
+            query = query.filter(Agent.status == status)
+
+        # Get agents from database
+        db_agents = query.all()
+        
+        # If a project ID was provided, filter deployments
+        if effective_project_id:
+            result_agents = []
             
-        agents = await vertex_service.list_agents(effective_project_id, region)
-        return agents
+            for agent in db_agents:
+                # Check if agent has a deployment in the specified project
+                deployment_query = db.query(Deployment).filter(
+                    Deployment.agent_id == agent.id,
+                    Deployment.project_id == effective_project_id
+                )
+                
+                if deployment_type:
+                    deployment_query = deployment_query.filter(
+                        Deployment.deployment_type == deployment_type
+                    )
+                
+                deployment = deployment_query.first()
+                
+                if deployment or not effective_project_id:
+                    # Format the agent data
+                    agent_data = {
+                        "id": agent.id,
+                        "name": deployment.resource_name if deployment else f"local-{agent.id}",
+                        "displayName": agent.display_name,
+                        "description": agent.description,
+                        "state": deployment.status if deployment else agent.status,
+                        "createTime": agent.created_at.isoformat(),
+                        "updateTime": agent.updated_at.isoformat(),
+                        "framework": agent.framework,
+                    }
+                    
+                    result_agents.append(agent_data)
+            
+            return result_agents
+        else:
+            # Return all agents if no project ID specified
+            return [
+                {
+                    "id": agent.id,
+                    "name": f"local-{agent.id}",
+                    "displayName": agent.display_name,
+                    "description": agent.description,
+                    "state": agent.status,
+                    "createTime": agent.created_at.isoformat(),
+                    "updateTime": agent.updated_at.isoformat(),
+                    "framework": agent.framework,
+                }
+                for agent in db_agents
+            ]
+            
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error listing agents: {str(e)}")
 
@@ -179,9 +242,10 @@ async def get_agent(
 @router.post("/agents")
 async def create_agent(
     request_data: Dict[str, Any],
-    project_id: Optional[str] = Query(None, description="Google Cloud Project ID"),
-    projectId: Optional[str] = Query(None, description="Google Cloud Project ID (alternative param)"),
-    region: str = Query("us-central1", description="Region for Vertex AI services")
+    project_id: Optional[str] = Query(None),
+    projectId: Optional[str] = Query(None),
+    region: str = Query("us-central1"),
+    db: Session = Depends(get_db)
 ) -> Dict:
     """Creates a new agent."""
     try:
@@ -190,80 +254,135 @@ async def create_agent(
         if not effective_project_id:
             raise HTTPException(status_code=400, detail="Project ID is required")
 
-        # Extract modelId from model path if it exists
-        if "model" in request_data and not "modelId" in request_data:
-            model_path = request_data["model"]
-            if isinstance(model_path, str) and "models/" in model_path:
-                request_data["modelId"] = model_path.split("models/")[-1]
-        
-        # Handle systemInstruction if it's in the nested format
-        if "systemInstruction" in request_data and isinstance(request_data["systemInstruction"], dict):
-            if "parts" in request_data["systemInstruction"] and isinstance(request_data["systemInstruction"]["parts"], list):
-                parts = request_data["systemInstruction"]["parts"]
-                if len(parts) > 0 and "text" in parts[0]:
-                    request_data["systemInstruction"] = parts[0]["text"]
-        
-        # Now validate the request with our Pydantic model
-        try:
-            agent_request = CreateAgentRequest(**request_data)
-        except Exception as validation_error:
-            raise HTTPException(status_code=422, detail=f"Validation error: {str(validation_error)}")
+        # Extract basic agent data
+        display_name = request_data.get("displayName")
+        if not display_name:
+            raise HTTPException(status_code=400, detail="displayName is required")
             
-        # Process the request and create agent data structure
-        agent_data = {
-            "displayName": agent_request.displayName,
-            "description": agent_request.description,
-            "generationConfig": {
-                "temperature": agent_request.temperature,
-                "maxOutputTokens": agent_request.maxOutputTokens
-            },
-            "systemInstruction": {
-                "parts": [
-                    {
-                        "text": agent_request.systemInstruction
-                    }
-                ]
+        description = request_data.get("description", "")
+        framework = request_data.get("framework", "CUSTOM")
+        model_id = request_data.get("modelId", "gemini-1.5-pro")
+        temperature = float(request_data.get("temperature", 0.2))
+        max_output_tokens = int(request_data.get("maxOutputTokens", 1024))
+        
+        # Extract system instruction
+        system_instruction = ""
+        if "systemInstruction" in request_data:
+            if isinstance(request_data["systemInstruction"], str):
+                system_instruction = request_data["systemInstruction"]
+            elif isinstance(request_data["systemInstruction"], dict) and "parts" in request_data["systemInstruction"]:
+                parts = request_data["systemInstruction"]["parts"]
+                if parts and "text" in parts[0]:
+                    system_instruction = parts[0]["text"]
+        
+        # Extract framework configuration
+        framework_config = request_data.get("frameworkConfig", {})
+
+        # Create agent in database
+        agent = Agent(
+            id=str(uuid.uuid4()),
+            display_name=display_name,
+            description=description,
+            framework=framework,
+            model_id=model_id,
+            temperature=temperature,
+            max_output_tokens=max_output_tokens,
+            system_instruction=system_instruction,
+            framework_config=framework_config,
+            status="DRAFT",
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow(),
+        )
+
+        db.add(agent)
+        db.commit()
+        db.refresh(agent)
+        
+        # If project ID is provided, deploy to Vertex AI
+        if effective_project_id and request_data.get("deploy", False):
+            # Prepare agent data for Vertex AI
+            agent_data = {
+                "displayName": display_name,
+                "description": description,
+                "generationConfig": {
+                    "temperature": temperature,
+                    "maxOutputTokens": max_output_tokens
+                },
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": system_instruction
+                        }
+                    ]
+                }
             }
+            
+            # Add model
+            agent_data["model"] = f"projects/{effective_project_id}/locations/{region}/publishers/google/models/{model_id}"
+            
+            # Add framework-specific configuration
+            if framework:
+                agent_data["framework"] = framework
+                
+            if framework_config:
+                agent_data["frameworkConfig"] = framework_config
+            
+            # Deploy to Vertex AI
+            response = await vertex_service.create_agent(effective_project_id, region, agent_data)
+            
+            # Extract agent ID from the name
+            vertex_agent_id = response["name"].split("/")[-1]
+            
+            # Create deployment record
+            deployment = Deployment(
+                id=str(uuid.uuid4()),
+                agent_id=agent.id,
+                deployment_type="AGENT_ENGINE",
+                version="1.0",
+                project_id=effective_project_id,
+                region=region,
+                resource_name=response["name"],
+                status=response.get("state", "CREATING"),
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+            
+            db.add(deployment)
+            db.commit()
+            
+            # Update agent status
+            agent.status = "DEPLOYED"
+            db.commit()
+            
+            return {
+                "id": agent.id,
+                "name": response["name"],
+                "displayName": agent.display_name,
+                "description": agent.description,
+                "state": response.get("state", "CREATING"),
+                "createTime": agent.created_at.isoformat(),
+                "updateTime": agent.updated_at.isoformat(),
+                "framework": agent.framework,
+            }
+        
+        # Return local agent data
+        return {
+            "id": agent.id,
+            "name": f"local-{agent.id}",
+            "displayName": agent.display_name,
+            "description": agent.description,
+            "state": "DRAFT",
+            "createTime": agent.created_at.isoformat(),
+            "updateTime": agent.updated_at.isoformat(),
+            "framework": agent.framework,
         }
         
-        # Add model
-        agent_data["model"] = f"projects/{effective_project_id}/locations/{region}/publishers/google/models/{agent_request.modelId}"
-        
-        # Add framework-specific configuration
-        if agent_request.framework:
-            agent_data["framework"] = agent_request.framework
-            
-            # LangGraph configuration
-            if agent_request.framework == "LANGGRAPH" and agent_request.graphType:
-                agent_data["frameworkConfig"] = {
-                    "graphType": agent_request.graphType,
-                    "tools": agent_request.tools or [],
-                    "initialState": json.loads(agent_request.initialState) if agent_request.initialState else {}
-                }
-                
-                # Add Vertex AI Search configuration if needed
-                if agent_request.tools and "retrieve_docs" in agent_request.tools:
-                    agent_data["frameworkConfig"]["vertexAISearch"] = {
-                        "dataStoreId": agent_request.dataStoreId,
-                        "dataStoreRegion": agent_request.dataStoreRegion
-                    }
-            
-            # CrewAI configuration
-            elif agent_request.framework == "CREWAI" and agent_request.processType:
-                agent_data["frameworkConfig"] = {
-                    "processType": agent_request.processType,
-                    "agents": [agent.dict() for agent in agent_request.agents] if agent_request.agents else [],
-                    "tasks": [task.dict() for task in agent_request.tasks] if agent_request.tasks else []
-                }
-        
-        # Create the agent
-        response = await vertex_service.create_agent(effective_project_id, region, agent_data)
-        return response
     except HTTPException:
         # Re-raise HTTP exceptions as is
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error creating agent: {str(e)}")
+
 
 @router.post("/agents/{agent_id}/deploy")
 async def deploy_agent(
