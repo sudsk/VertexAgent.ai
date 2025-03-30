@@ -5,6 +5,7 @@ import { createAgent, deployAgent } from '../services/agentEngineService';
 import FrameworkTemplates from '../components/FrameworkTemplates';
 
 const CreateAgent = ({ projectId, region }) => {
+  const [deploymentType, setDeploymentType] = useState('AGENT_ENGINE');
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
