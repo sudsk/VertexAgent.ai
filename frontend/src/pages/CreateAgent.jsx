@@ -836,7 +836,65 @@ const CreateAgent = ({ projectId, region }) => {
                     />
                   </div>
                 </div>
-                
+
+                <div className="mb-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Deployment Options</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-start">
+                      <input
+                        type="radio"
+                        id="deploy-agent-engine"
+                        name="deploymentType"
+                        value="AGENT_ENGINE"
+                        checked={deploymentType === 'AGENT_ENGINE'}
+                        onChange={() => setDeploymentType('AGENT_ENGINE')}
+                        className="mt-1 h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      />
+                      <label htmlFor="deploy-agent-engine" className="ml-3">
+                        <div className="text-sm font-medium text-gray-700">Vertex AI Agent Engine</div>
+                        <p className="text-xs text-gray-500">
+                          Deploy to Google's fully managed Agent Engine service. Provides automatic scaling and management.
+                        </p>
+                      </label>
+                    </div>
+                    
+                    <div className="flex items-start">
+                      <input
+                        type="radio"
+                        id="deploy-cloud-run"
+                        name="deploymentType"
+                        value="CLOUD_RUN"
+                        checked={deploymentType === 'CLOUD_RUN'}
+                        onChange={() => setDeploymentType('CLOUD_RUN')}
+                        className="mt-1 h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      />
+                      <label htmlFor="deploy-cloud-run" className="ml-3">
+                        <div className="text-sm font-medium text-gray-700">Cloud Run</div>
+                        <p className="text-xs text-gray-500">
+                          Deploy as a custom container to Cloud Run. Provides more flexibility and customization options.
+                        </p>
+                      </label>
+                    </div>
+                    
+                    <div className="flex items-start">
+                      <input
+                        type="radio"
+                        id="no-deployment"
+                        name="deploymentType"
+                        value="NONE"
+                        checked={deploymentType === 'NONE'}
+                        onChange={() => setDeploymentType('NONE')}
+                        className="mt-1 h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      />
+                      <label htmlFor="no-deployment" className="ml-3">
+                        <div className="text-sm font-medium text-gray-700">Local Only</div>
+                        <p className="text-xs text-gray-500">
+                          Save the agent configuration for local testing only. You can deploy it later.
+                        </p>
+                      </label>
+                    </div>
+                  </div>
+                </div>                
                 <div className="flex justify-end">
                   <button
                     type="button"
