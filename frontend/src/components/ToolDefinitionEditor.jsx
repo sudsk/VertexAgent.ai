@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 
-const ToolDefinitionEditor = ({ tools, onChange }) => {
-  const [tools, setTools] = useState(tools || []);
+const ToolDefinitionEditor = ({ tools: initialTools, onChange }) => {
+  const [tools, setTools] = useState(initialTools  || []);
   
   const addTool = () => {
     const newTool = {
