@@ -14,132 +14,221 @@ vertex_service = VertexAIService()
 @router.post("/agents/playground")
 async def test_agent_locally(
     request_data: Dict[str, Any],
-    project_id: Optional[str] = Query(None, description="Google Cloud Project ID"),
-    projectId: Optional[str] = Query(None, description="Google Cloud Project ID (alternative param)"),
-    region: str = Query("us-central1", description="Region for Vertex AI services")
+    project_id: Optional[str] = Query(None),
+    projectId: Optional[str] = Query(None),
+    region: str = Query("us-central1"),
+    db: Session = Depends(get_db)
 ) -> Dict:
-    """Tests an agent configuration locally without deploying."""
+    """Tests an agent configuration locally and records the test result."""
     try:
         # Use projectId if project_id is not provided
         effective_project_id = project_id or projectId
         if not effective_project_id:
             raise HTTPException(status_code=400, detail="Project ID is required")
             
-        # Extract configuration from request data
-        framework = request_data.get("framework", "CUSTOM")
-        model_id = request_data.get("modelId", "gemini-1.5-pro")
-        query = request_data.get("query", "")
+        # Get agent ID if provided
+        agent_id = request_data.get("id")
+        query = request_data.get("query")
         
         if not query:
             raise HTTPException(status_code=400, detail="Query is required")
         
-        # Extract system instruction
-        system_instruction = ""
-        if "systemInstruction" in request_data:
-            if isinstance(request_data["systemInstruction"], str):
-                system_instruction = request_data["systemInstruction"]
-            elif isinstance(request_data["systemInstruction"], dict) and "parts" in request_data["systemInstruction"]:
-                parts = request_data["systemInstruction"]["parts"]
-                if parts and "text" in parts[0]:
-                    system_instruction = parts[0]["text"]
+        # Start timer for metrics
+        start_time = datetime.utcnow()
+        success = True
         
-        # Get generation config
-        temperature = request_data.get("temperature", 0.2)
-        max_output_tokens = request_data.get("maxOutputTokens", 1024)
-        
-        # Framework-specific configurations
-        framework_config = request_data.get("frameworkConfig", {})
+        # Get or create agent
+        if agent_id:
+            # Find existing agent
+            agent = db.query(Agent).filter(Agent.id == agent_id).first()
+            if not agent:
+                raise HTTPException(status_code=404, detail="Agent not found")
+        else:
+            # Create temporary agent from request data
+            display_name = request_data.get("displayName", "Temporary Agent")
+            description = request_data.get("description", "")
+            framework = request_data.get("framework", "CUSTOM")
+            model_id = request_data.get("modelId", "gemini-1.5-pro")
+            temperature = float(request_data.get("temperature", 0.2))
+            max_output_tokens = int(request_data.get("maxOutputTokens", 1024))
+            
+            # Extract system instruction
+            system_instruction = ""
+            if "systemInstruction" in request_data:
+                if isinstance(request_data["systemInstruction"], str):
+                    system_instruction = request_data["systemInstruction"]
+                elif isinstance(request_data["systemInstruction"], dict) and "parts" in request_data["systemInstruction"]:
+                    parts = request_data["systemInstruction"]["parts"]
+                    if parts and "text" in parts[0]:
+                        system_instruction = parts[0]["text"]
+            
+            # Extract framework configuration
+            framework_config = request_data.get("frameworkConfig", {})
+            
+            # Create agent (if not already exists)
+            agent = Agent(
+                id=str(uuid.uuid4()),
+                display_name=display_name,
+                description=description,
+                framework=framework,
+                model_id=model_id,
+                temperature=temperature,
+                max_output_tokens=max_output_tokens,
+                system_instruction=system_instruction,
+                framework_config=framework_config,
+                status="DRAFT",
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow(),
+            )
+            
+            db.add(agent)
+            db.commit()
+            db.refresh(agent)
         
         # Create a local agent instance based on framework type
-        if framework == "LANGCHAIN":
-            from vertexai.preview.reasoning_engines import LangchainAgent
-            
-            agent = LangchainAgent(
-                model=model_id,
-                temperature=temperature,
-                max_output_tokens=max_output_tokens
-            )
-            response = agent.query(input=query)
-            
-        elif framework == "LANGGRAPH":
-            # Import specific LangGraph components
-            from langchain_core.messages import HumanMessage
-            from langchain_google_vertexai import ChatVertexAI
-            from langgraph.graph import END, MessageGraph
-            from langgraph.prebuilt import ToolNode
-            
-            # Create a local LangGraph agent
-            model = ChatVertexAI(model=model_id, temperature=temperature, max_output_tokens=max_output_tokens)
-            builder = MessageGraph()
-            
-            # Add tools if specified
-            tools = framework_config.get("tools", [])
-            tool_objects = []  # Convert tool definitions to objects
-            
-            # Add nodes to the graph
-            model_with_tools = model.bind_tools(tool_objects)
-            builder.add_node("tools", model_with_tools)
-            
-            # Add tool node and edges
-            tool_node = ToolNode(tool_objects)
-            for tool in tool_objects:
-                tool_name = tool.__name__
-                builder.add_node(tool_name, tool_node)
-                builder.add_edge(tool_name, END)
-            
-            # Set entry point and build the graph
-            builder.set_entry_point("tools")
-            
-            # Define custom router based on graph type
-            graph_type = framework_config.get("graphType", "sequential")
-            # Simple router example - would need to be customized
-            def router(state):
-                if len(state) > 0 and hasattr(state[-1], "tool_calls") and state[-1].tool_calls:
-                    return state[-1].tool_calls[0].get("name", END)
-                return END
-            
-            builder.add_conditional_edges("tools", router)
-            
-            # Compile and invoke the graph
-            graph = builder.compile()
-            result = graph.invoke(HumanMessage(query))
-            
-            # Format the response
-            response = {
-                "output": result[-1].content if result else "",
-                "messages": [msg.to_dict() for msg in result] if result else []
-            }
+        try:
+            framework = agent.framework
+            model_id = agent.model_id
+            temperature = agent.temperature
+            max_output_tokens = agent.max_output_tokens
+            system_instruction = agent.system_instruction
         
-        # Handle other frameworks similarly...
-        else:  # CUSTOM or other frameworks
-            # Create a simple agent with Vertex AI
-            from vertexai.generative_models import GenerativeModel
+            # Create a local agent instance based on framework type
+            if framework == "LANGCHAIN":
+                from vertexai.preview.reasoning_engines import LangchainAgent
+                
+                agent = LangchainAgent(
+                    model=model_id,
+                    temperature=temperature,
+                    max_output_tokens=max_output_tokens
+                )
+                response = agent.query(input=query)
+                
+            elif framework == "LANGGRAPH":
+                # Import specific LangGraph components
+                from langchain_core.messages import HumanMessage
+                from langchain_google_vertexai import ChatVertexAI
+                from langgraph.graph import END, MessageGraph
+                from langgraph.prebuilt import ToolNode
+                
+                # Create a local LangGraph agent
+                model = ChatVertexAI(model=model_id, temperature=temperature, max_output_tokens=max_output_tokens)
+                builder = MessageGraph()
+                
+                # Add tools if specified
+                tools = framework_config.get("tools", [])
+                tool_objects = []  # Convert tool definitions to objects
+                
+                # Add nodes to the graph
+                model_with_tools = model.bind_tools(tool_objects)
+                builder.add_node("tools", model_with_tools)
+                
+                # Add tool node and edges
+                tool_node = ToolNode(tool_objects)
+                for tool in tool_objects:
+                    tool_name = tool.__name__
+                    builder.add_node(tool_name, tool_node)
+                    builder.add_edge(tool_name, END)
+                
+                # Set entry point and build the graph
+                builder.set_entry_point("tools")
+                
+                # Define custom router based on graph type
+                graph_type = framework_config.get("graphType", "sequential")
+                # Simple router example - would need to be customized
+                def router(state):
+                    if len(state) > 0 and hasattr(state[-1], "tool_calls") and state[-1].tool_calls:
+                        return state[-1].tool_calls[0].get("name", END)
+                    return END
+                
+                builder.add_conditional_edges("tools", router)
+                
+                # Compile and invoke the graph
+                graph = builder.compile()
+                result = graph.invoke(HumanMessage(query))
+                
+                # Format the response
+                response = {
+                    "output": result[-1].content if result else "",
+                    "messages": [msg.to_dict() for msg in result] if result else []
+                }
             
-            model = GenerativeModel(model_id)
-            generation_config = {
-                "temperature": temperature,
-                "max_output_tokens": max_output_tokens
+            # Handle other frameworks similarly...
+            else:  # CUSTOM or other frameworks
+                # Create a simple agent with Vertex AI
+                from vertexai.generative_models import GenerativeModel
+                
+                model = GenerativeModel(model_id)
+                generation_config = {
+                    "temperature": temperature,
+                    "max_output_tokens": max_output_tokens
+                }
+                
+                result = model.generate_content(
+                    query,
+                    generation_config=generation_config,
+                    system_instruction=system_instruction
+                )
+                
+                response = {
+                    "output": result.text,
+                    "messages": [{"content": result.text}]
+                }
+            
+            return {
+                "textResponse": response.get("output", ""),
+                "actions": response.get("actions", []),
+                "messages": response.get("messages", [])
             }
-            
-            result = model.generate_content(
-                query,
-                generation_config=generation_config,
-                system_instruction=system_instruction
-            )
-            
+        except Exception as test_error:
+            success = False
             response = {
-                "output": result.text,
-                "messages": [{"content": result.text}]
+                "textResponse": f"Error: {str(test_error)}",
+                "actions": [],
+                "messages": [{"content": f"Error: {str(test_error)}"}]
             }
+            
+        # End timer
+        end_time = datetime.utcnow()
+        duration_ms = (end_time - start_time).total_seconds() * 1000
         
+        # Record test in database
+        test = AgentTest(
+            id=str(uuid.uuid4()),
+            agent_id=agent.id,
+            query=query,
+            response=response.get("textResponse", ""),
+            metrics={
+                "duration_ms": duration_ms,
+                "success": success
+            },
+            success=success,
+            created_at=datetime.utcnow()
+        )
+        
+        db.add(test)
+        
+        # Update agent status to TESTED if it was successful
+        if success and agent.status == "DRAFT":
+            agent.status = "TESTED"
+            
+        db.commit()
+        
+        # Return response
         return {
-            "textResponse": response.get("output", ""),
+            "agent_id": agent.id,
+            "textResponse": response.get("textResponse", ""),
             "actions": response.get("actions", []),
-            "messages": response.get("messages", [])
+            "messages": response.get("messages", []),
+            "metrics": {
+                "duration_ms": duration_ms,
+                "success": success
+            }
         }
+        
     except Exception as e:
-        print(f"Error in local playground: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error testing agent locally: {str(e)}")
+
         
 @router.get("/agents")
 async def list_agents(
