@@ -2,7 +2,7 @@
 from sqlalchemy import create_engine, Column, String, Float, Integer, Text, JSON, DateTime, Boolean, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
-import uuid
+import uuid, os
 from datetime import datetime
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/vertexagent")
