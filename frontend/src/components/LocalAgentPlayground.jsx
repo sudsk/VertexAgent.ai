@@ -180,12 +180,13 @@ const LocalAgentPlayground = ({ projectId, region }) => {
                     {msg.content}
                     {msg.actions && msg.actions.length > 0 && (
                       <div className="mt-2 pt-2 border-t border-gray-200">
-                        <p className="text-xs font-medium">Actions:</p>
-                        <ul className="text-xs list-disc pl-4">
-                          {msg.actions.map((action, actionIdx) => (
-                            <li key={actionIdx}>{action.name || 'Unnamed action'}</li>
-                          ))}
-                        </ul>
+                        <p className="text-xs font-medium text-gray-500">Tool Actions:</p>
+                        {msg.actions.map((action, actionIdx) => (
+                          <div key={actionIdx} className="mt-1 text-xs bg-gray-50 p-2 rounded">
+                            <span className="font-medium">{action.name}: </span>
+                            <span>{action.output}</span>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
