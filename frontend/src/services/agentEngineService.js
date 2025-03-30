@@ -4,14 +4,25 @@ import axios from 'axios';
 // API base URL (will point to your backend server)
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
-// List all agents (local and deployed)
+// List all agents
 export const listAgents = async (projectId, region = 'us-central1', filters = {}) => {
   try {
-    const queryParams = { projectId, region, ...filters };
+    const params = {
+      ...filters  // Include any filters passed to the function
+    };
     
-    const response = await axios.get(`${API_URL}/agents`, {
-      params: queryParams
-    });
+    // Only add projectId to params if it exists
+    if (projectId) {
+      params.projectId = projectId;
+      params.region = region;
+    }
+    
+    // Always include local agents unless explicitly set to false in filters
+    if (filters.include_local === undefined) {
+      params.include_local = true;
+    }
+    
+    const response = await axios.get(`${API_URL}/agents`, { params });
     return response.data || [];
   } catch (error) {
     console.error('Error listing agents:', error);
@@ -19,12 +30,10 @@ export const listAgents = async (projectId, region = 'us-central1', filters = {}
   }
 };
 
-// List local agents (not deployed)
+// List only local agents
 export const listLocalAgents = async () => {
   try {
-    const response = await axios.get(`${API_URL}/agents`, {
-      params: { status: 'DRAFT,TESTED' }
-    });
+    const response = await axios.get(`${API_URL}/local-agents`);
     return response.data || [];
   } catch (error) {
     console.error('Error listing local agents:', error);
