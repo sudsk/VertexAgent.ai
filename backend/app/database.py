@@ -36,6 +36,9 @@ class Agent(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
     created_by = Column(String, nullable=True)
+    tools = Column(JSON, nullable=True)  # For storing tool definitions
+    memory_enabled = Column(Boolean, default=False)  # Whether to use conversation memory
+    prompt_template = Column(Text, nullable=True)  # For storing custom prompt templates
     
     deployments = relationship("Deployment", back_populates="agent")
     tests = relationship("AgentTest", back_populates="agent")
