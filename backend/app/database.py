@@ -73,5 +73,16 @@ class AgentTest(Base):
     
     agent = relationship("Agent", back_populates="tests")
 
+class CustomTool(Base):
+    __tablename__ = "custom_tools"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    code = Column(Text, nullable=False)
+    user_id = Column(String, nullable=True)  # If you have user authentication
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 # Create all tables
 Base.metadata.create_all(bind=engine)
