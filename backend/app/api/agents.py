@@ -163,38 +163,31 @@ async def test_agent_locally(
                     temperature=temperature,
                     max_output_tokens=max_output_tokens
                 )
-
+                
                 try:
-                    # Create proper message format
+                    # Format the prompt correctly based on agent-starter-pack examples
+                    # Option 1: Direct prompt approach (most reliable)
                     if system_instruction:
-                        # Use the content part structure required by Vertex AI
-                        messages = [
-                            {"role": "system", "parts": [{"text": system_instruction}]},
-                            {"role": "user", "parts": [{"text": query}]}
-                        ]
+                        # Include system instructions as part of the prompt
+                        prompt = f"{system_instruction}\n\n{query}"
                     else:
-                        # If no system instruction, just use the query directly
-                        messages = {"role": "user", "parts": [{"text": query}]}
+                        prompt = query
+                        
+                    # Generate response with single prompt (most reliable method)
+                    result = model.generate_content(prompt, generation_config=generation_config)
                     
-                    # Generate response
-                    result = model.generate_content(
-                        messages,
-                        generation_config=generation_config
-                    )
-                    
-                    # Properly extract text from the response
-                    response_text = result.text if hasattr(result, 'text') else ""
-                    if not response_text and hasattr(result, 'candidates') and result.candidates:
-                        # Try to get text from candidates if available
-                        response_text = result.candidates[0].content.parts[0].text
+                    # Extract text from response
+                    response_text = result.text if hasattr(result, "text") else ""
                     
                     response = {
                         "output": response_text,
                         "messages": [{"content": response_text}]
                     }
-                except Exception as e:
-                    print(f"Error generating content: {str(e)}")
-                    raise      
+                    
+                except Exception as gen_error:
+                    print(f"Generation error details: {str(gen_error)}")
+                    # Re-raise to be caught by the outer exception handler
+                    raise
                     
             return {
                 "textResponse": response.get("output", ""),
