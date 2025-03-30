@@ -10,3 +10,6 @@ langchain>=0.0.267
 langchain_google_vertexai
 langgraph
 cloudpickle==3.0.0
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.5  # For PostgreSQL
+alembic>=1.10.0  # For database migrations
