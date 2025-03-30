@@ -318,9 +318,10 @@ async def list_agents(
 @router.get("/agents/{agent_id}")
 async def get_agent(
     agent_id: str,
-    project_id: Optional[str] = Query(None, description="Google Cloud Project ID"),
-    projectId: Optional[str] = Query(None, description="Google Cloud Project ID (alternative param)"),
-    region: str = Query("us-central1", description="Region for Vertex AI services")
+    project_id: Optional[str] = Query(None),
+    projectId: Optional[str] = Query(None),
+    region: str = Query("us-central1"),
+    db: Session = Depends(get_db)
 ) -> Dict:
     """Gets a specific agent."""
     try:
@@ -328,12 +329,61 @@ async def get_agent(
         effective_project_id = project_id or projectId
         if not effective_project_id:
             raise HTTPException(status_code=400, detail="Project ID is required")
+        
+        # First, check if the agent exists in the database
+        agent = db.query(Agent).filter(Agent.id == agent_id).first()
+        
+        if agent:
+            # Get deployment info if a project ID is specified
+            deployment = None
+            if effective_project_id:
+                deployment = db.query(Deployment).filter(
+                    Deployment.agent_id == agent.id,
+                    Deployment.project_id == effective_project_id,
+                    Deployment.region == region
+                ).order_by(Deployment.created_at.desc()).first()
             
-        agent = await vertex_service.get_agent(effective_project_id, region, agent_id)
-        return agent
+            # Return agent data from the database
+            return {
+                "id": agent.id,
+                "name": deployment.resource_name if deployment else f"local-{agent.id}",
+                "displayName": agent.display_name,
+                "description": agent.description,
+                "state": deployment.status if deployment else agent.status,
+                "createTime": agent.created_at.isoformat(),
+                "updateTime": agent.updated_at.isoformat(),
+                "framework": agent.framework,
+                "model": f"projects/{deployment.project_id if deployment else effective_project_id}/locations/{deployment.region if deployment else region}/publishers/google/models/{agent.model_id}" if agent.model_id else None,
+                "generationConfig": {
+                    "temperature": agent.temperature,
+                    "maxOutputTokens": agent.max_output_tokens
+                },
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": agent.system_instruction or ""
+                        }
+                    ]
+                },
+                "frameworkConfig": agent.framework_config
+            }
+        
+        # If the agent is not in the database but looks like a Vertex AI resource path,
+        # try to get it from Vertex AI
+        if agent_id.startswith("projects/") or not agent_id.startswith("local-"):
+            try:
+                return await vertex_service.get_agent(effective_project_id, region, agent_id)
+            except Exception as vertex_error:
+                print(f"Error getting agent from Vertex AI: {str(vertex_error)}")
+                raise HTTPException(status_code=404, detail="Agent not found in Vertex AI")
+        
+        # If we get here, the agent was not found
+        raise HTTPException(status_code=404, detail="Agent not found")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting agent: {str(e)}")
-
+        
 @router.post("/agents")
 async def create_agent(
     request_data: Dict[str, Any],
@@ -482,28 +532,109 @@ async def create_agent(
 @router.post("/agents/{agent_id}/deploy")
 async def deploy_agent(
     agent_id: str,
-    project_id: Optional[str] = Query(None, description="Google Cloud Project ID"),
-    projectId: Optional[str] = Query(None, description="Google Cloud Project ID (alternative param)"),
-    region: str = Query("us-central1", description="Region for Vertex AI services")
+    project_id: Optional[str] = Query(None),
+    projectId: Optional[str] = Query(None),
+    region: str = Query("us-central1"),
+    db: Session = Depends(get_db)
 ) -> Dict:
-    """Deploys an agent."""
+    """Deploys an agent to Vertex AI Agent Engine."""
     try:
         # Use projectId if project_id is not provided
         effective_project_id = project_id or projectId
         if not effective_project_id:
             raise HTTPException(status_code=400, detail="Project ID is required")
+        
+        # Check if agent exists in database
+        agent = db.query(Agent).filter(Agent.id == agent_id).first()
+        if not agent:
+            raise HTTPException(status_code=404, detail="Agent not found")
+        
+        # Check if already deployed to this project/region
+        existing_deployment = db.query(Deployment).filter(
+            Deployment.agent_id == agent_id,
+            Deployment.project_id == effective_project_id,
+            Deployment.region == region,
+            Deployment.status == "ACTIVE"
+        ).first()
+        
+        if existing_deployment:
+            return {
+                "id": agent.id,
+                "name": existing_deployment.resource_name,
+                "displayName": agent.display_name,
+                "state": "ACTIVE",
+                "message": "Agent already deployed"
+            }
+        
+        # Prepare agent data for Vertex AI
+        agent_data = {
+            "displayName": agent.display_name,
+            "description": agent.description or "",
+            "generationConfig": {
+                "temperature": agent.temperature,
+                "maxOutputTokens": agent.max_output_tokens
+            },
+            "systemInstruction": {
+                "parts": [
+                    {
+                        "text": agent.system_instruction or ""
+                    }
+                ]
+            }
+        }
+        
+        # Add model
+        agent_data["model"] = f"projects/{effective_project_id}/locations/{region}/publishers/google/models/{agent.model_id}"
+        
+        # Add framework-specific configuration
+        if agent.framework:
+            agent_data["framework"] = agent.framework
             
-        response = await vertex_service.deploy_agent(effective_project_id, region, agent_id)
-        return response
+        if agent.framework_config:
+            agent_data["frameworkConfig"] = agent.framework_config
+        
+        # Deploy to Vertex AI
+        response = await vertex_service.create_agent(effective_project_id, region, agent_data)
+        
+        # Create deployment record
+        deployment = Deployment(
+            id=str(uuid.uuid4()),
+            agent_id=agent.id,
+            deployment_type="AGENT_ENGINE",
+            version="1.0",
+            project_id=effective_project_id,
+            region=region,
+            resource_name=response.get("name"),
+            status="ACTIVE",
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+        
+        db.add(deployment)
+        
+        # Update agent status to DEPLOYED
+        agent.status = "DEPLOYED"
+        agent.updated_at = datetime.utcnow()
+        
+        db.commit()
+        
+        return {
+            "id": agent.id,
+            "name": response.get("name"),
+            "displayName": agent.display_name,
+            "state": "ACTIVE",
+            "message": "Agent successfully deployed"
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deploying agent: {str(e)}")
 
 @router.delete("/agents/{agent_id}")
 async def delete_agent(
     agent_id: str,
-    project_id: Optional[str] = Query(None, description="Google Cloud Project ID"),
-    projectId: Optional[str] = Query(None, description="Google Cloud Project ID (alternative param)"),
-    region: str = Query("us-central1", description="Region for Vertex AI services")
+    project_id: Optional[str] = Query(None),
+    projectId: Optional[str] = Query(None),
+    region: str = Query("us-central1"),
+    db: Session = Depends(get_db)
 ) -> Dict:
     """Deletes an agent."""
     try:
@@ -511,31 +642,231 @@ async def delete_agent(
         effective_project_id = project_id or projectId
         if not effective_project_id:
             raise HTTPException(status_code=400, detail="Project ID is required")
+        
+        # Check if agent exists in database
+        agent = db.query(Agent).filter(Agent.id == agent_id).first()
+        
+        # If agent is in database
+        if agent:
+            # Find its deployments
+            deployments = db.query(Deployment).filter(
+                Deployment.agent_id == agent_id,
+                Deployment.project_id == effective_project_id,
+                Deployment.region == region
+            ).all()
             
-        response = await vertex_service.delete_agent(effective_project_id, region, agent_id)
-        return response
+            # For each deployment, try to delete it from Vertex AI
+            for deployment in deployments:
+                try:
+                    await vertex_service.delete_agent(effective_project_id, region, deployment.resource_name)
+                    # Update deployment status
+                    deployment.status = "DELETED"
+                    deployment.updated_at = datetime.utcnow()
+                except Exception as vertex_error:
+                    print(f"Error deleting agent from Vertex AI: {str(vertex_error)}")
+            
+            # Update the agent status
+            agent.status = "DELETED"
+            agent.updated_at = datetime.utcnow()
+            
+            # Commit changes to database
+            db.commit()
+            
+            return {
+                "id": agent.id,
+                "status": "deleted"
+            }
+        
+        # If agent is not in database but has a Vertex AI resource name format
+        if agent_id.startswith("projects/"):
+            # Try to delete directly from Vertex AI
+            response = await vertex_service.delete_agent(effective_project_id, region, agent_id)
+            return response
+        
+        # If resource name format, try to delete
+        try:
+            response = await vertex_service.delete_agent(effective_project_id, region, agent_id)
+            return response
+        except Exception as e:
+            raise HTTPException(status_code=404, detail=f"Agent not found or could not be deleted: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting agent: {str(e)}")
 
+@router.get("/agents/{agent_id}/tests")
+async def get_agent_tests(
+    agent_id: str,
+    limit: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db)
+) -> List[Dict]:
+    """Gets test history for an agent."""
+    try:
+        # Query tests for the agent, most recent first
+        tests = db.query(AgentTest).filter(
+            AgentTest.agent_id == agent_id
+        ).order_by(
+            AgentTest.created_at.desc()
+        ).limit(limit).all()
+        
+        return [
+            {
+                "id": test.id,
+                "query": test.query,
+                "response": test.response,
+                "success": test.success,
+                "metrics": test.metrics,
+                "created_at": test.created_at.isoformat()
+            }
+            for test in tests
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting agent tests: {str(e)}")
+
+@router.get("/local-agents")
+async def list_local_agents(
+    db: Session = Depends(get_db)
+) -> List[Dict]:
+    """Lists all local agents (not deployed to Vertex AI)."""
+    try:
+        # Query agents that are DRAFT or TESTED but not DEPLOYED
+        agents = db.query(Agent).filter(
+            Agent.status.in_(["DRAFT", "TESTED"])
+        ).order_by(Agent.updated_at.desc()).all()
+        
+        return [
+            {
+                "id": agent.id,
+                "name": f"local-{agent.id}",
+                "displayName": agent.display_name,
+                "description": agent.description,
+                "state": agent.status,
+                "createTime": agent.created_at.isoformat(),
+                "updateTime": agent.updated_at.isoformat(),
+                "framework": agent.framework,
+                "modelId": agent.model_id
+            }
+            for agent in agents
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error listing local agents: {str(e)}")
+        
 @router.post("/agents/{agent_id}/query")
 async def query_agent(
     agent_id: str,
     query: str,
-    project_id: Optional[str] = Query(None, description="Google Cloud Project ID"),
-    projectId: Optional[str] = Query(None, description="Google Cloud Project ID (alternative param)"),
-    region: str = Query("us-central1", description="Region for Vertex AI services"),
-    max_response_items: int = Query(10, description="Maximum number of response items")
+    project_id: Optional[str] = Query(None),
+    projectId: Optional[str] = Query(None),
+    region: str = Query("us-central1"),
+    max_response_items: int = Query(10),
+    db: Session = Depends(get_db)
 ) -> Dict:
-    """Queries an agent."""
+    """Queries an agent and records the interaction."""
     try:
         # Use projectId if project_id is not provided
         effective_project_id = project_id or projectId
         if not effective_project_id:
             raise HTTPException(status_code=400, detail="Project ID is required")
+        
+        # Start timer for performance metrics
+        start_time = datetime.utcnow()
+        
+        # Check if agent exists in database
+        agent = db.query(Agent).filter(Agent.id == agent_id).first()
+        
+        if not agent:
+            # If not in database but looks like a direct Vertex AI resource path
+            if agent_id.startswith("projects/"):
+                try:
+                    response = await vertex_service.query_agent(
+                        effective_project_id, region, agent_id, query, max_response_items
+                    )
+                    return response
+                except Exception as vertex_error:
+                    raise HTTPException(
+                        status_code=500, 
+                        detail=f"Error querying Vertex AI agent: {str(vertex_error)}"
+                    )
+            else:
+                raise HTTPException(status_code=404, detail="Agent not found")
+        
+        # Find active deployment in the specified project/region
+        deployment = db.query(Deployment).filter(
+            Deployment.agent_id == agent.id,
+            Deployment.project_id == effective_project_id,
+            Deployment.region == region,
+            Deployment.status == "ACTIVE"
+        ).first()
+        
+        if not deployment:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"No active deployment found for agent in project {effective_project_id}, region {region}"
+            )
+        
+        # Query the agent using the deployment's resource name
+        try:
+            response = await vertex_service.query_agent(
+                effective_project_id, 
+                region, 
+                deployment.resource_name, 
+                query, 
+                max_response_items
+            )
             
-        response = await vertex_service.query_agent(
-            effective_project_id, region, agent_id, query, max_response_items
-        )
-        return response
+            # Record the successful query
+            end_time = datetime.utcnow()
+            duration_ms = (end_time - start_time).total_seconds() * 1000
+            
+            # Store test record (optional - you might want to separate query logs from tests)
+            test = AgentTest(
+                id=str(uuid.uuid4()),
+                agent_id=agent.id,
+                query=query,
+                response=response.get("textResponse", ""),
+                metrics={
+                    "duration_ms": duration_ms,
+                    "deployment_id": deployment.id,
+                    "project_id": effective_project_id,
+                    "region": region
+                },
+                success=True,
+                created_at=datetime.utcnow()
+            )
+            
+            db.add(test)
+            db.commit()
+            
+            return response
+            
+        except Exception as query_error:
+            # Record the failed query
+            end_time = datetime.utcnow()
+            duration_ms = (end_time - start_time).total_seconds() * 1000
+            
+            test = AgentTest(
+                id=str(uuid.uuid4()),
+                agent_id=agent.id,
+                query=query,
+                response=f"Error: {str(query_error)}",
+                metrics={
+                    "duration_ms": duration_ms,
+                    "deployment_id": deployment.id,
+                    "project_id": effective_project_id,
+                    "region": region,
+                    "error": str(query_error)
+                },
+                success=False,
+                created_at=datetime.utcnow()
+            )
+            
+            db.add(test)
+            db.commit()
+            
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Error querying agent: {str(query_error)}"
+            )
+            
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error querying agent: {str(e)}")
