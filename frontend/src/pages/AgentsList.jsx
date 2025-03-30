@@ -9,6 +9,7 @@ const AgentsList = ({ projectId, region }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
+  const [openMenuId, setOpenMenuId] = useState(null);  
 
   useEffect(() => {
     const fetchAgents = async () => {
@@ -31,6 +32,18 @@ const AgentsList = ({ projectId, region }) => {
     fetchAgents();
   }, [projectId, region]);
 
+  // Also add a click handler to close menus when clicking outside:
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setOpenMenuId(null);
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);  
+  
   const handleDeleteConfirm = async (agentId) => {
     try {
       await deleteAgent(projectId, region, agentId);
