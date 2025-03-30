@@ -156,18 +156,24 @@ async def test_agent_locally(
             # Handle other frameworks similarly...
             else:  # CUSTOM or other frameworks
                 # Create a simple agent with Vertex AI
-                from vertexai.generative_models import GenerativeModel
+                from vertexai.generative_models import GenerativeModel, GenerationConfig
                 
                 model = GenerativeModel(model_id)
-                generation_config = {
-                    "temperature": temperature,
-                    "max_output_tokens": max_output_tokens
-                }
+                generation_config = GenerationConfig(
+                    temperature=temperature,
+                    max_output_tokens=max_output_tokens
+                )
                 
+                # Create messages including system instruction if available
+                messages = []
+                if system_instruction:
+                    messages.append({"role": "system", "content": system_instruction})
+                messages.append({"role": "user", "content": query})
+                
+                # Generate response
                 result = model.generate_content(
-                    query,
-                    generation_config=generation_config,
-                    system_instruction=system_instruction
+                    messages if system_instruction else query,
+                    generation_config=generation_config
                 )
                 
                 response = {
