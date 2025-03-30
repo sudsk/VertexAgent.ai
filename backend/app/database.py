@@ -5,7 +5,6 @@ from sqlalchemy.orm import sessionmaker, relationship
 import uuid
 from datetime import datetime
 
-DATABASE_URL = "postgresql://user:password@localhost/vertexagent"
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/vertexagent")
 
 engine = create_engine(DATABASE_URL)
