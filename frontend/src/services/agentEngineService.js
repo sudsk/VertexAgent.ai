@@ -4,20 +4,70 @@ import axios from 'axios';
 // API base URL (will point to your backend server)
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
-// List all agents in a project
-export const listAgents = async (projectId, region = 'us-central1') => {
+// List all agents (local and deployed)
+export const listAgents = async (projectId, region = 'us-central1', filters = {}) => {
   try {
-    // For development/testing
-    if (process.env.NODE_ENV === 'development' && !projectId) {
-      return []; // Return empty array if no project ID in development
-    }
+    const queryParams = { projectId, region, ...filters };
     
     const response = await axios.get(`${API_URL}/agents`, {
-      params: { projectId, region }
+      params: queryParams
     });
     return response.data || [];
   } catch (error) {
     console.error('Error listing agents:', error);
+    throw error;
+  }
+};
+
+// List local agents (not deployed)
+export const listLocalAgents = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/agents`, {
+      params: { status: 'DRAFT,TESTED' }
+    });
+    return response.data || [];
+  } catch (error) {
+    console.error('Error listing local agents:', error);
+    throw error;
+  }
+};
+
+// Get test history for an agent
+export const getAgentTestHistory = async (agentId) => {
+  try {
+    const response = await axios.get(`${API_URL}/agents/${agentId}/tests`);
+    return response.data || [];
+  } catch (error) {
+    console.error('Error getting agent test history:', error);
+    throw error;
+  }
+};
+
+// Create agent without immediate deployment
+export const createLocalAgent = async (agentData) => {
+  try {
+    const response = await axios.post(`${API_URL}/agents`, {
+      ...agentData,
+      deploy: false
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error creating local agent:', error);
+    throw error;
+  }
+};
+
+// Deploy to specific target (Agent Engine or Cloud Run)
+export const deployAgent = async (projectId, region, agentId, target = 'AGENT_ENGINE') => {
+  try {
+    const response = await axios.post(`${API_URL}/agents/${agentId}/deploy`, {
+      deploymentType: target
+    }, {
+      params: { projectId, region }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error deploying agent:', error);
     throw error;
   }
 };
@@ -44,19 +94,6 @@ export const createAgent = async (projectId, region, agentData) => {
     return response.data;
   } catch (error) {
     console.error('Error creating agent:', error);
-    throw error;
-  }
-};
-
-// Deploy an agent
-export const deployAgent = async (projectId, region, agentId) => {
-  try {
-    const response = await axios.post(`${API_URL}/agents/${agentId}/deploy`, {}, {
-      params: { projectId, region }
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error deploying agent:', error);
     throw error;
   }
 };
