@@ -163,24 +163,39 @@ async def test_agent_locally(
                     temperature=temperature,
                     max_output_tokens=max_output_tokens
                 )
-                
-                # Create messages including system instruction if available
-                messages = []
-                if system_instruction:
-                    messages.append({"role": "system", "content": system_instruction})
-                messages.append({"role": "user", "content": query})
-                
-                # Generate response
-                result = model.generate_content(
-                    messages if system_instruction else query,
-                    generation_config=generation_config
-                )
-                
-                response = {
-                    "output": result.text,
-                    "messages": [{"content": result.text}]
-                }
-            
+
+                try:
+                    # Create proper message format
+                    if system_instruction:
+                        # Use the content part structure required by Vertex AI
+                        messages = [
+                            {"role": "system", "parts": [{"text": system_instruction}]},
+                            {"role": "user", "parts": [{"text": query}]}
+                        ]
+                    else:
+                        # If no system instruction, just use the query directly
+                        messages = {"role": "user", "parts": [{"text": query}]}
+                    
+                    # Generate response
+                    result = model.generate_content(
+                        messages,
+                        generation_config=generation_config
+                    )
+                    
+                    # Properly extract text from the response
+                    response_text = result.text if hasattr(result, 'text') else ""
+                    if not response_text and hasattr(result, 'candidates') and result.candidates:
+                        # Try to get text from candidates if available
+                        response_text = result.candidates[0].content.parts[0].text
+                    
+                    response = {
+                        "output": response_text,
+                        "messages": [{"content": response_text}]
+                    }
+                except Exception as e:
+                    print(f"Error generating content: {str(e)}")
+                    raise      
+                    
             return {
                 "textResponse": response.get("output", ""),
                 "actions": response.get("actions", []),
