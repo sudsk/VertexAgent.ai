@@ -4,6 +4,8 @@ from langchain_core.tools import Tool
 from langchain.agents import AgentExecutor, create_react_agent
 from langchain.memory import ConversationBufferMemory
 from langchain_core.prompts import PromptTemplate
+from app.services.tool_registry import ToolRegistry
+from app.services.custom_tool_service import CustomToolService
 
 class LangChainService:
     def __init__(self):
@@ -79,3 +81,39 @@ class LangChainService:
                 "output": f"Error: {str(e)}",
                 "messages": [{"content": f"Error: {str(e)}"}]
             }
+
+def create_tools(self, tool_definitions: List[Dict[str, Any]], db: Session) -> List[Tool]:
+    """Creates LangChain tools from definitions, including custom tools."""
+    tools = []
+    
+    for tool_def in tool_definitions:
+        tool_id = tool_def.get("id")
+        tool_name = tool_def.get("name")
+        tool_type = tool_def.get("type", "PREDEFINED")
+        
+        if tool_type == "CUSTOM":
+            # Handle custom tool
+            custom_tool = CustomToolService.get_tool(db, tool_id)
+            if custom_tool:
+                # Create a function that calls the custom tool executor
+                def custom_tool_func(*args, tool_id=tool_id, **kwargs):
+                    return CustomToolService.execute_tool(db, tool_id, kwargs)
+                
+                tool = Tool(
+                    name=custom_tool.name,
+                    description=custom_tool.description,
+                    func=custom_tool_func
+                )
+                tools.append(tool)
+        else:
+            # Handle predefined tool
+            registered_tool = ToolRegistry.get_tool(tool_name)
+            if registered_tool:
+                tool = Tool(
+                    name=tool_name,
+                    description=registered_tool["description"],
+                    func=registered_tool["function"]
+                )
+                tools.append(tool)
+    
+    return tools
