@@ -243,7 +243,6 @@ async def test_agent_locally(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error testing agent locally: {str(e)}")
 
-        
 @router.get("/agents")
 async def list_agents(
     project_id: Optional[str] = Query(None),
@@ -251,17 +250,16 @@ async def list_agents(
     region: str = Query("us-central1"),
     deployment_type: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
+    include_local: bool = Query(True, description="Include local agents in results"),
     db: Session = Depends(get_db)    
 ) -> List[Dict]:
     """Lists all agents in the database with optional filters."""
     try:
         # Use projectId if project_id is not provided
         effective_project_id = project_id or projectId
-        if not effective_project_id:
-            raise HTTPException(status_code=400, detail="Project ID is required")
-
+        
         # Base query
-        query = db.query(Agent)
+        query = db.query(Agent).filter(Agent.status != "DELETED")  # Exclude deleted agents
         
         # Apply filters
         if status:
@@ -270,15 +268,17 @@ async def list_agents(
         # Get agents from database
         db_agents = query.all()
         
-        # If a project ID was provided, filter deployments
-        if effective_project_id:
-            result_agents = []
-            
-            for agent in db_agents:
-                # Check if agent has a deployment in the specified project
+        result_agents = []
+        
+        # Process each agent
+        for agent in db_agents:
+            # If we have a project ID, look for deployments in that project
+            deployment = None
+            if effective_project_id:
                 deployment_query = db.query(Deployment).filter(
                     Deployment.agent_id == agent.id,
-                    Deployment.project_id == effective_project_id
+                    Deployment.project_id == effective_project_id,
+                    Deployment.status != "DELETED"  # Exclude deleted deployments
                 )
                 
                 if deployment_type:
@@ -287,42 +287,61 @@ async def list_agents(
                     )
                 
                 deployment = deployment_query.first()
-                
-                if deployment or not effective_project_id:
-                    # Format the agent data
-                    agent_data = {
-                        "id": agent.id,
-                        "name": deployment.resource_name if deployment else f"local-{agent.id}",
-                        "displayName": agent.display_name,
-                        "description": agent.description,
-                        "state": deployment.status if deployment else agent.status,
-                        "createTime": agent.created_at.isoformat(),
-                        "updateTime": agent.updated_at.isoformat(),
-                        "framework": agent.framework,
-                    }
-                    
-                    result_agents.append(agent_data)
             
-            return result_agents
-        else:
-            # Return all agents if no project ID specified
-            return [
-                {
+            # Include the agent if:
+            # 1. It has a deployment in the specified project, OR
+            # 2. It's a local agent (no deployment) and include_local is True, OR
+            # 3. No project ID was specified
+            if deployment or (include_local and agent.status in ["DRAFT", "TESTED"]) or not effective_project_id:
+                # Format the agent data
+                agent_data = {
                     "id": agent.id,
-                    "name": f"local-{agent.id}",
+                    "name": deployment.resource_name if deployment else f"local-{agent.id}",
                     "displayName": agent.display_name,
                     "description": agent.description,
-                    "state": agent.status,
+                    "state": deployment.status if deployment else agent.status,
                     "createTime": agent.created_at.isoformat(),
                     "updateTime": agent.updated_at.isoformat(),
                     "framework": agent.framework,
+                    "isLocal": deployment is None  # Add flag to identify local agents
                 }
-                for agent in db_agents
-            ]
+                
+                result_agents.append(agent_data)
+        
+        return result_agents
             
     except Exception as e:
+        print(f"Error listing agents: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error listing agents: {str(e)}")
 
+@router.get("/local-agents")
+async def list_local_agents(
+    db: Session = Depends(get_db)
+) -> List[Dict]:
+    """Lists all local agents (not deployed or in DRAFT/TESTED state)."""
+    try:
+        # Query agents that are in DRAFT or TESTED state
+        agents = db.query(Agent).filter(
+            Agent.status.in_(["DRAFT", "TESTED"])
+        ).order_by(Agent.updated_at.desc()).all()
+        
+        return [
+            {
+                "id": agent.id,
+                "name": f"local-{agent.id}",
+                "displayName": agent.display_name,
+                "description": agent.description,
+                "state": agent.status,
+                "createTime": agent.created_at.isoformat(),
+                "updateTime": agent.updated_at.isoformat(),
+                "framework": agent.framework,
+                "isLocal": True
+            }
+            for agent in agents
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error listing local agents: {str(e)}")
+        
 @router.get("/agents/{agent_id}")
 async def get_agent(
     agent_id: str,
