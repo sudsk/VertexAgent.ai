@@ -177,3 +177,40 @@ export const testAgentLocally = async (projectId, region, testData) => {
     throw error;
   }
 };
+
+// Create a custom tool
+export const createCustomTool = async (name, description, code) => {
+  try {
+    const response = await axios.post(`${API_URL}/custom-tools`, {
+      name,
+      description,
+      code
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error creating custom tool:', error);
+    throw error;
+  }
+};
+
+// List custom tools
+export const listCustomTools = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/custom-tools`);
+    return response.data || [];
+  } catch (error) {
+    console.error('Error listing custom tools:', error);
+    throw error;
+  }
+};
+
+// Execute a custom tool
+export const executeCustomTool = async (toolId, params) => {
+  try {
+    const response = await axios.post(`${API_URL}/custom-tools/${toolId}/execute`, params);
+    return response.data;
+  } catch (error) {
+    console.error('Error executing custom tool:', error);
+    throw error;
+  }
+};
