@@ -897,3 +897,21 @@ async def query_agent(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error querying agent: {str(e)}")
+
+@router.get("/debug/all-agents")
+async def debug_all_agents(db: Session = Depends(get_db)) -> List[Dict]:
+    """Debug endpoint to list all agents in the database regardless of status."""
+    try:
+        agents = db.query(Agent).all()
+        return [
+            {
+                "id": agent.id,
+                "display_name": agent.display_name,
+                "status": agent.status,
+                "created_at": agent.created_at.isoformat(),
+                "updated_at": agent.updated_at.isoformat()
+            }
+            for agent in agents
+        ]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error listing debug agents: {str(e)}")
