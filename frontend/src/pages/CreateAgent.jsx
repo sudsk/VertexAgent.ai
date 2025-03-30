@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createAgent, deployAgent } from '../services/agentEngineService';
 import FrameworkTemplates from '../components/FrameworkTemplates';
+import ToolDefinitionEditor from '../components/ToolDefinitionEditor';
 
 const CreateAgent = ({ projectId, region }) => {
   const [deploymentType, setDeploymentType] = useState('AGENT_ENGINE');
