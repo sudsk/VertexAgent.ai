@@ -746,7 +746,11 @@ async def delete_agent(
         effective_project_id = project_id or projectId
         if not effective_project_id:
             raise HTTPException(status_code=400, detail="Project ID is required")
-        
+
+        # Check if agent_id has the "local-" prefix, and remove it if present
+        if agent_id.startswith("local-"):
+            agent_id = agent_id[6:]  # Remove "local-" prefix
+            
         # Check if agent exists in database
         agent = db.query(Agent).filter(Agent.id == agent_id).first()
         
@@ -783,16 +787,18 @@ async def delete_agent(
         
         # If agent is not in database but has a Vertex AI resource name format
         if agent_id.startswith("projects/"):
-            # Try to delete directly from Vertex AI
-            response = await vertex_service.delete_agent(effective_project_id, region, agent_id)
-            return response
-        
-        # If resource name format, try to delete
-        try:
-            response = await vertex_service.delete_agent(effective_project_id, region, agent_id)
-            return response
-        except Exception as e:
-            raise HTTPException(status_code=404, detail=f"Agent not found or could not be deleted: {str(e)}")
+            try:
+                response = await vertex_service.delete_agent(effective_project_id, region, agent_id)
+                return response
+            except Exception as e:
+                raise HTTPException(status_code=404, detail=f"Agent not found or could not be deleted: {str(e)}")
+                
+        # If it's neither a known local agent nor a valid resource name, return an error
+        raise HTTPException(status_code=404, detail="Agent not found")
+         
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting agent: {str(e)}")
 
