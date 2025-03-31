@@ -1,13 +1,15 @@
 // src/pages/Playground.jsx
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Tabs, Tab } from '../components/Tabs';
 import DeployedAgentPlayground from '../components/DeployedAgentPlayground';
 import LocalAgentPlayground from '../components/LocalAgentPlayground';
 
 const Playground = ({ projectId, region }) => {
   const { agentId } = useParams();
-  const [activeTab, setActiveTab] = useState(agentId ? 'deployed' : 'local');
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');  
+  const [activeTab, setActiveTab] = useState(tabParam || (agentId ? 'deployed' : 'local'));
   const navigate = useNavigate();
 
   // Detect if the agentId is from a newly created agent
