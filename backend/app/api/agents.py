@@ -462,6 +462,15 @@ async def create_agent(
         
         # Extract framework configuration
         framework_config = request_data.get("frameworkConfig", {})
+        
+        # Extract tools
+        tools = request_data.get("tools", [])
+        
+        # Extract memory settings
+        memory_enabled = request_data.get("memoryEnabled", False)
+        
+        # Extract prompt template if available
+        prompt_template = request_data.get("promptTemplate", "")
 
         # Create agent in database
         agent = Agent(
@@ -474,6 +483,9 @@ async def create_agent(
             max_output_tokens=max_output_tokens,
             system_instruction=system_instruction,
             framework_config=framework_config,
+            tools=tools,
+            memory_enabled=memory_enabled,
+            prompt_template=prompt_template,
             status="DRAFT",
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
@@ -483,9 +495,12 @@ async def create_agent(
         db.commit()
         db.refresh(agent)
         
-        # If project ID is provided, deploy to Vertex AI
-        if effective_project_id and request_data.get("deploy", False):
-            # Prepare agent data for Vertex AI
+        # Check if we should deploy immediately - default is False, we've changed the flow
+        should_deploy = request_data.get("deploy", False)
+        
+        # If project ID is provided and deploy flag is true, deploy to Vertex AI
+        if effective_project_id and should_deploy:
+            # Prepare agent data for Vertex AI (existing code)
             agent_data = {
                 "displayName": display_name,
                 "description": description,
@@ -550,7 +565,7 @@ async def create_agent(
                 "framework": agent.framework,
             }
         
-        # Return local agent data
+        # Return local agent data - the default flow now
         return {
             "id": agent.id,
             "name": f"local-{agent.id}",
@@ -568,21 +583,24 @@ async def create_agent(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error creating agent: {str(e)}")
 
-
 @router.post("/agents/{agent_id}/deploy")
 async def deploy_agent(
     agent_id: str,
+    deployment_data: Dict[str, Any] = Body({}),
     project_id: Optional[str] = Query(None),
     projectId: Optional[str] = Query(None),
     region: str = Query("us-central1"),
     db: Session = Depends(get_db)
 ) -> Dict:
-    """Deploys an agent to Vertex AI Agent Engine."""
+    """Deploys an agent to the specified target."""
     try:
         # Use projectId if project_id is not provided
         effective_project_id = project_id or projectId
         if not effective_project_id:
             raise HTTPException(status_code=400, detail="Project ID is required")
+        
+        # Extract deployment type from request
+        deployment_type = deployment_data.get("deploymentType", "AGENT_ENGINE")
         
         # Check if agent exists in database
         agent = db.query(Agent).filter(Agent.id == agent_id).first()
@@ -594,7 +612,8 @@ async def deploy_agent(
             Deployment.agent_id == agent_id,
             Deployment.project_id == effective_project_id,
             Deployment.region == region,
-            Deployment.status == "ACTIVE"
+            Deployment.status == "ACTIVE",
+            Deployment.deployment_type == deployment_type
         ).first()
         
         if existing_deployment:
@@ -603,52 +622,96 @@ async def deploy_agent(
                 "name": existing_deployment.resource_name,
                 "displayName": agent.display_name,
                 "state": "ACTIVE",
-                "message": "Agent already deployed"
+                "message": f"Agent already deployed to {deployment_type}"
             }
         
-        # Prepare agent data for Vertex AI
-        agent_data = {
-            "displayName": agent.display_name,
-            "description": agent.description or "",
-            "generationConfig": {
-                "temperature": agent.temperature,
-                "maxOutputTokens": agent.max_output_tokens
-            },
-            "systemInstruction": {
-                "parts": [
-                    {
-                        "text": agent.system_instruction or ""
-                    }
-                ]
+        # Deploy to the selected target
+        if deployment_type == "AGENT_ENGINE":
+            # Standard deployment to Vertex AI Agent Engine
+            # Prepare agent data for Vertex AI
+            agent_data = {
+                "displayName": agent.display_name,
+                "description": agent.description or "",
+                "generationConfig": {
+                    "temperature": agent.temperature,
+                    "maxOutputTokens": agent.max_output_tokens
+                },
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": agent.system_instruction or ""
+                        }
+                    ]
+                }
             }
-        }
-        
-        # Add model
-        agent_data["model"] = f"projects/{effective_project_id}/locations/{region}/publishers/google/models/{agent.model_id}"
-        
-        # Add framework-specific configuration
-        if agent.framework:
-            agent_data["framework"] = agent.framework
             
-        if agent.framework_config:
-            agent_data["frameworkConfig"] = agent.framework_config
-        
-        # Deploy to Vertex AI
-        response = await vertex_service.create_agent(effective_project_id, region, agent_data)
-        
-        # Create deployment record
-        deployment = Deployment(
-            id=str(uuid.uuid4()),
-            agent_id=agent.id,
-            deployment_type="AGENT_ENGINE",
-            version="1.0",
-            project_id=effective_project_id,
-            region=region,
-            resource_name=response.get("name"),
-            status="ACTIVE",
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
-        )
+            # Add model
+            agent_data["model"] = f"projects/{effective_project_id}/locations/{region}/publishers/google/models/{agent.model_id}"
+            
+            # Add framework-specific configuration
+            if agent.framework:
+                agent_data["framework"] = agent.framework
+                
+            if agent.framework_config:
+                agent_data["frameworkConfig"] = agent.framework_config
+            
+            # Deploy to Vertex AI
+            response = await vertex_service.create_agent(effective_project_id, region, agent_data)
+            
+            # Create deployment record
+            deployment = Deployment(
+                id=str(uuid.uuid4()),
+                agent_id=agent.id,
+                deployment_type="AGENT_ENGINE",
+                version="1.0",
+                project_id=effective_project_id,
+                region=region,
+                resource_name=response.get("name"),
+                status="ACTIVE",
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+            
+        elif deployment_type == "CLOUD_RUN":
+            # Deploy to Cloud Run
+            from app.services.cloud_run import CloudRunService
+            cloud_run_service = CloudRunService()
+            
+            # Prepare agent data
+            agent_data = {
+                "displayName": agent.display_name,
+                "description": agent.description or "",
+                "framework": agent.framework,
+                "modelId": agent.model_id,
+                "temperature": agent.temperature,
+                "maxOutputTokens": agent.max_output_tokens,
+                "systemInstruction": agent.system_instruction or "",
+                "frameworkConfig": agent.framework_config
+            }
+            
+            # Deploy to Cloud Run
+            response = await cloud_run_service.deploy_agent_to_cloud_run(
+                effective_project_id,
+                region,
+                agent_data
+            )
+            
+            # Create deployment record
+            deployment = Deployment(
+                id=str(uuid.uuid4()),
+                agent_id=agent.id,
+                deployment_type="CLOUD_RUN",
+                version="1.0",
+                project_id=effective_project_id,
+                region=region,
+                resource_name=response.get("name"),
+                endpoint_url=response.get("uri"),
+                status="ACTIVE",
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+        else:
+            raise HTTPException(status_code=400, detail=f"Unsupported deployment type: {deployment_type}")
         
         db.add(deployment)
         
@@ -663,7 +726,8 @@ async def deploy_agent(
             "name": response.get("name"),
             "displayName": agent.display_name,
             "state": "ACTIVE",
-            "message": "Agent successfully deployed"
+            "deploymentType": deployment_type,
+            "message": f"Agent successfully deployed to {deployment_type}"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deploying agent: {str(e)}")
