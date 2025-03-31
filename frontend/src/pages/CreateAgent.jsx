@@ -329,8 +329,8 @@ const CreateAgent = ({ projectId, region }) => {
     );
   }
 
-  // Function to test the agent before deploying
-  const handleTestBeforeDeploying = () => {
+  // Function to test the agent 
+  const handleTestBeforeCreating  = () => {
     if (!formData.displayName) {
       // Show error or validation message
       return;
@@ -436,7 +436,7 @@ const CreateAgent = ({ projectId, region }) => {
                     <span>Creating...</span>
                   </>
                 ) : (
-                  <span>Create and Deploy</span>
+                  <span>Create Agent</span>
                 )}
               </button>
             </div>
