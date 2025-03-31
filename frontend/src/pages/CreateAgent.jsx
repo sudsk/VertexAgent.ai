@@ -1,7 +1,7 @@
-  // src/pages/CreateAgent.jsx
+// src/pages/CreateAgent.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createAgent, deployAgent, createLocalAgent   } from '../services/agentEngineService';
+import { createAgent, deployAgent, createLocalAgent } from '../services/agentEngineService';
 import FrameworkTemplates from '../components/FrameworkTemplates';
 import ToolDefinitionEditor from '../components/ToolDefinitionEditor';
 
@@ -306,9 +306,13 @@ const CreateAgent = ({ projectId, region }) => {
 
       // Create the agent locally without deployment
       const createdAgent = await createLocalAgent(agentData);
-
-      // Navigate to the agent details page
-      navigate(`/agents/${createdAgent.id}`);
+      
+      // Set a flag in sessionStorage to indicate this is a newly created agent
+      // This will be used by the playground to show a welcome message
+      sessionStorage.setItem('newlyCreatedAgent', createdAgent.id);
+      
+      // Navigate directly to the playground to test the newly created agent
+      navigate(`/playground/${createdAgent.id}`);
       
     } catch (error) {
       console.error('Error creating agent:', error);
@@ -329,41 +333,7 @@ const CreateAgent = ({ projectId, region }) => {
     );
   }
 
-  // Function to test the agent 
-  const handleTestBeforeCreating  = () => {
-    if (!formData.displayName) {
-      // Show error or validation message
-      return;
-    }
-    
-    // Prepare the agent configuration
-    const agentConfig = {
-      displayName: formData.displayName,
-      description: formData.description || '',
-      framework: formData.framework,
-      modelId: formData.modelId,
-      temperature: formData.temperature,
-      maxOutputTokens: formData.maxOutputTokens,
-      systemInstruction: formData.systemInstruction,
-      // Framework-specific fields
-      ...(formData.framework === 'LANGGRAPH' && {
-        graphType: formData.graphType,
-        tools: formData.tools,
-        initialState: formData.initialState,
-      }),
-      ...(formData.framework === 'CREWAI' && {
-        processType: formData.processType,
-        agents: formData.agents,
-        tasks: formData.tasks,
-      }),
-    };
-    
-    // Store the configuration in localStorage to pass it to the playground
-    localStorage.setItem('testAgentConfig', JSON.stringify(agentConfig));
-    
-    // Navigate to the local playground
-    navigate('/playground');
-  };
+  // Function has been removed - we now go directly to testing after creation
   
   return (
     <div className="container mx-auto px-4">
@@ -854,13 +824,6 @@ const CreateAgent = ({ projectId, region }) => {
                 </div>
               </div>
               <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleTestBeforeCreating}
-                  className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mr-2"
-                >
-                  Test Before Creating
-                </button>                  
                 <button
                   onClick={handleCreateAgent}  
                   disabled={!formData.displayName || isLoading}
