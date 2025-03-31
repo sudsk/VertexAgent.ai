@@ -1,13 +1,15 @@
 // Update LocalAgentPlayground.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { testAgentLocally, createAgent, deployAgent } from '../services/agentEngineService';
+import { useNavigate, useParams } from 'react-router-dom';
+import { testAgentLocally, createAgent, deployAgent, getAgent } from '../services/agentEngineService';
 import { MessageCircle, Send, Bot, Save } from 'lucide-react';
 import LoadingSpinner from './LoadingSpinner';
 
 const LocalAgentPlayground = ({ projectId, region }) => {
   const navigate = useNavigate();
-  const [agentConfig, setAgentConfig] = useState(null);
+  const { agentId } = useParams();
+  const [agent, setAgent] = useState(null);
+  const [isLoadingAgent, setIsLoadingAgent] = useState(false);
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -15,21 +17,38 @@ const LocalAgentPlayground = ({ projectId, region }) => {
   const [error, setError] = useState('');
   const messagesEndRef = useRef(null);
 
+  // Effect to fetch agent details if agentId is provided
   useEffect(() => {
-    // Check if we have a configuration in localStorage
-    const savedConfig = localStorage.getItem('testAgentConfig');
-    if (savedConfig) {
+    const fetchAgentDetails = async () => {
+      if (!agentId || !projectId) return;
+      
       try {
-        const config = JSON.parse(savedConfig);
-        setAgentConfig(config);
+        setIsLoadingAgent(true);
+        const agentData = await getAgent(projectId, region, agentId);
+        setAgent(agentData);
         
-        // Clear the stored configuration
-        localStorage.removeItem('testAgentConfig');
-      } catch (error) {
-        console.error('Error parsing saved configuration:', error);
+        // Add a welcome message for newly created agents
+        const isNewlyCreated = sessionStorage.getItem('newlyCreatedAgent') === agentId;
+        if (isNewlyCreated) {
+          setMessages([
+            { 
+              role: 'system', 
+              content: `Agent "${agentData.displayName}" has been created successfully! You can now test it by sending a message.` 
+            }
+          ]);
+          // Clear the flag
+          sessionStorage.removeItem('newlyCreatedAgent');
+        }
+      } catch (err) {
+        console.error('Error fetching agent details:', err);
+        setError('Failed to load agent details');
+      } finally {
+        setIsLoadingAgent(false);
       }
-    }
-  }, []);
+    };
+    
+    fetchAgentDetails();
+  }, [agentId, projectId, region]);    
 
   useEffect(() => {
     // Scroll to bottom when messages change
@@ -39,7 +58,7 @@ const LocalAgentPlayground = ({ projectId, region }) => {
   }, [messages]);
 
   const handleTestQuery = async () => {
-    if (!query.trim() || !agentConfig || !projectId) return;
+    if (!query.trim() || !agent || !projectId) return;
     
     try {
       setIsProcessing(true);
@@ -50,7 +69,7 @@ const LocalAgentPlayground = ({ projectId, region }) => {
       
       // Call the testAgentLocally service
       const response = await testAgentLocally(projectId, region, {
-        ...agentConfig,
+        ...agent,
         query: query
       });
       
@@ -78,20 +97,14 @@ const LocalAgentPlayground = ({ projectId, region }) => {
   };
 
   const handleDeployToVertexAI = async () => {
-    if (!agentConfig || !projectId) return;
+    if (!agent || !projectId) return;
     
     setIsDeploying(true);
     setError('');
     
     try {
-      // Create the agent
-      const createdAgent = await createAgent(projectId, region, agentConfig);
-      
-      // Get the agent ID from the name
-      const agentId = createdAgent.name.split('/').pop();
-      
       // Deploy the agent
-      await deployAgent(projectId, region, agentId);
+      await deployAgent(projectId, region, agentId, 'AGENT_ENGINE');
       
       // Navigate to the deployed playground with this agent
       navigate(`/playground/${agentId}`);
@@ -109,15 +122,15 @@ const LocalAgentPlayground = ({ projectId, region }) => {
     }
   };
 
-  // If no agent config is loaded
-  if (!agentConfig) {
+  // If no agent is loaded and we're not loading one
+  if (!agent && !isLoadingAgent) {
     return (
       <div className="space-y-6">
         <div className="bg-yellow-50 border border-yellow-100 p-6 rounded-lg text-center">
           <Bot className="h-12 w-12 text-yellow-500 mx-auto mb-3" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Agent Configuration</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Agent Selected</h3>
           <p className="text-gray-600 mb-4">
-            To test an agent locally, first create a new agent configuration or visit the Create Agent page.
+            Please select an agent from the Agents page or create a new one to test.
           </p>
           <button
             onClick={() => navigate('/create-agent')}
@@ -130,20 +143,30 @@ const LocalAgentPlayground = ({ projectId, region }) => {
     );
   }
 
+  // If we're loading the agent
+  if (isLoadingAgent) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <LoadingSpinner />
+        <p className="ml-3 text-gray-600">Loading agent...</p>
+      </div>
+    );
+  }  
+
   return (
     <div className="space-y-6">
       {/* Agent Info */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <h3 className="text-lg font-medium mb-2">Testing Agent: {agentConfig.displayName}</h3>
+        <h3 className="text-lg font-medium mb-2">Testing Agent: {agent.displayName}</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
           <div>
-            <span className="font-medium">Framework:</span> {agentConfig.framework || 'CUSTOM'}
+            <span className="font-medium">Framework:</span> {agent.framework || 'CUSTOM'}
           </div>
           <div>
-            <span className="font-medium">Model:</span> {agentConfig.modelId || 'gemini-1.5-pro'}
+            <span className="font-medium">Model:</span> {agent.modelId || agent.model?.split('/').pop() || 'gemini-1.5-pro'}
           </div>
           <div>
-            <span className="font-medium">Temperature:</span> {agentConfig.temperature || '0.2'}
+            <span className="font-medium">Temperature:</span> {agent.temperature || agent.generationConfig?.temperature || '0.2'}
           </div>
         </div>
       </div>
