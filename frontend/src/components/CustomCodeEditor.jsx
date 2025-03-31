@@ -1,6 +1,6 @@
 // src/components/CustomCodeEditor.jsx
 import React, { useState, useEffect } from 'react';
-import { Code, Save, Activity, Play, Tool, RotateCcw, Check } from 'lucide-react';
+import { Code, Save, Activity, Play, Wrench, RotateCcw, Check } from 'lucide-react';
 
 // Mock code editor - in production you'd use a component like Monaco Editor or CodeMirror
 const CodeEditorField = ({ value, onChange, language, height = "250px" }) => {
