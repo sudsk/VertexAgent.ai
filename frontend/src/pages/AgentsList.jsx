@@ -215,7 +215,7 @@ const AgentsList = ({ projectId, region }) => {
                   <div className="col-span-2 flex items-center justify-end">
                     {/* Quick Action Buttons */}
                     <Link
-                      to={`/playground/${agentId}`}
+                      to={`/playground/${agentId}?tab=${agent.isLocal ? 'local' : 'deployed'}`}
                       className="p-1 mr-1 text-blue-600 hover:text-blue-800 rounded-full hover:bg-blue-50"
                       title="Test Agent"
                     >
