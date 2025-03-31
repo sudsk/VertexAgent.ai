@@ -1,8 +1,9 @@
 // src/pages/AgentsList.jsx
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { listAgents, deleteAgent } from '../services/agentEngineService';
-import { Cpu, Search, Plus, MoreHorizontal, Trash2 } from 'lucide-react';
+import { listAgents, deleteAgent, deployAgent } from '../services/agentEngineService';
+import { Cpu, Search, Plus, MoreHorizontal, Trash2, Play, Cloud } from 'lucide-react';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const AgentsList = ({ projectId, region }) => {
   const [agents, setAgents] = useState([]);
@@ -10,25 +11,26 @@ const AgentsList = ({ projectId, region }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [deleteConfirmation, setDeleteConfirmation] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);  
+  const [deploymentStatus, setDeploymentStatus] = useState({});  
+
+  const fetchAgents = async () => {
+    if (!projectId) {
+      setIsLoading(false);
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      const agentsData = await listAgents(projectId, region);
+      setAgents(agentsData);
+    } catch (error) {
+      console.error('Error fetching agents:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchAgents = async () => {
-      if (!projectId) {
-        setIsLoading(false);
-        return;
-      }
-      
-      try {
-        setIsLoading(true);
-        const agentsData = await listAgents(projectId, region);
-        setAgents(agentsData);
-      } catch (error) {
-        console.error('Error fetching agents:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchAgents();
   }, [projectId, region]);
 
@@ -42,7 +44,7 @@ const AgentsList = ({ projectId, region }) => {
     return () => {
       document.removeEventListener('click', handleClickOutside);
     };
-  }, []);  
+  }, []);    
   
   const handleDeleteConfirm = async (agentId) => {
     try {
@@ -51,6 +53,39 @@ const AgentsList = ({ projectId, region }) => {
       setDeleteConfirmation(null);
     } catch (error) {
       console.error('Error deleting agent:', error);
+    }
+  };    
+
+  const handleDeployAgent = async (agentId, deployTarget = 'AGENT_ENGINE') => {
+    if (!projectId) return;
+
+    try {
+      // Set deployment status to "in progress" for this agent
+      setDeploymentStatus(prev => ({
+        ...prev,
+        [agentId]: { status: 'deploying', error: null }
+      }));
+
+      await deployAgent(projectId, region, agentId, deployTarget);
+      
+      // Update status to "success"
+      setDeploymentStatus(prev => ({
+        ...prev,
+        [agentId]: { status: 'success', error: null }
+      }));
+      
+      // Refresh agent list
+      fetchAgents();
+      
+      // Close menu
+      setOpenMenuId(null);
+      
+    } catch (error) {
+      console.error('Error deploying agent:', error);
+      setDeploymentStatus(prev => ({
+        ...prev,
+        [agentId]: { status: 'error', error: error.message }
+      }));
     }
   };
 
@@ -113,102 +148,185 @@ const AgentsList = ({ projectId, region }) => {
         ) : (
           <>
             <div className="grid grid-cols-12 py-3 px-4 border-b border-gray-200 bg-gray-50 text-sm font-medium text-gray-600">
-              <div className="col-span-5">Name</div>
+              <div className="col-span-4">Name</div>
               <div className="col-span-2">Status</div>
               <div className="col-span-2">Framework</div>
               <div className="col-span-2">Last Updated</div>
-              <div className="col-span-1 text-right">Actions</div>
+              <div className="col-span-2 text-right">Actions</div>
             </div>
             
-            {filteredAgents.map((agent, index) => (
-              <div 
-                key={agent.name || index} 
-                className="grid grid-cols-12 py-4 px-4 border-b border-gray-200 hover:bg-gray-50"
-              >
-                <div className="col-span-5 flex items-center">
-                  <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-3">
-                    <Cpu size={16} />
+            {filteredAgents.map((agent, index) => {
+              const agentId = agent.name.split('/').pop();
+              const isDeployed = agent.state === "ACTIVE";
+              const isDeploying = deploymentStatus[agentId]?.status === 'deploying';
+              
+              return (
+                <div 
+                  key={agent.name || index} 
+                  className="grid grid-cols-12 py-4 px-4 border-b border-gray-200 hover:bg-gray-50"
+                >
+                  <div className="col-span-4 flex items-center">
+                    <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mr-3">
+                      <Cpu size={16} />
+                    </div>
+                    <div>
+                      <Link to={`/agents/${agentId}`} className="font-medium text-gray-900 hover:text-blue-600">
+                        {agent.displayName || 'Unnamed Agent'}
+                      </Link>
+                      <p className="text-xs text-gray-500">Created {new Date(agent.createTime).toLocaleDateString()}</p>
+                    </div>
                   </div>
-                  <div>
-                    <Link to={`/agents/${agent.name.split('/').pop()}`} className="font-medium text-gray-900 hover:text-blue-600">
-                      {agent.displayName || 'Unnamed Agent'}
-                    </Link>
-                    <p className="text-xs text-gray-500">Created {new Date(agent.createTime).toLocaleDateString()}</p>
+                  <div className="col-span-2 flex items-center">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      agent.state === 'ACTIVE' ? 'bg-green-100 text-green-800' : 
+                      agent.state === 'CREATING' ? 'bg-yellow-100 text-yellow-800' : 
+                      agent.state === 'TESTED' ? 'bg-blue-100 text-blue-800' :
+                      agent.state === 'DRAFT' ? 'bg-gray-100 text-gray-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      <span className={`h-2 w-2 rounded-full ${
+                        agent.state === 'ACTIVE' ? 'bg-green-400' : 
+                        agent.state === 'CREATING' ? 'bg-yellow-400' : 
+                        agent.state === 'TESTED' ? 'bg-blue-400' :
+                        agent.state === 'DRAFT' ? 'bg-gray-400' :
+                        'bg-gray-400'
+                      } mr-1`}></span>
+                      {agent.state || 'Unknown'}
+                    </span>
                   </div>
-                </div>
-                <div className="col-span-2 flex items-center">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    agent.state === 'ACTIVE' ? 'bg-green-100 text-green-800' : 
-                    agent.state === 'CREATING' ? 'bg-yellow-100 text-yellow-800' : 
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    <span className={`h-2 w-2 rounded-full ${
-                      agent.state === 'ACTIVE' ? 'bg-green-400' : 
-                      agent.state === 'CREATING' ? 'bg-yellow-400' : 
-                      'bg-gray-400'
-                    } mr-1`}></span>
-                    {agent.state || 'Unknown'}
-                  </span>
-                </div>
-                <div className="col-span-2 flex items-center text-sm text-gray-600">
-                  {agent.framework === 'LANGGRAPH' ? (
-                    <span className="flex items-center">
-                      <span className="inline-block h-4 w-4 bg-blue-100 text-blue-600 rounded mr-1 text-xs font-bold text-center">G</span>
-                      LangGraph
-                    </span>
-                  ) : agent.framework === 'CREWAI' ? (
-                    <span className="flex items-center">
-                      <span className="inline-block h-4 w-4 bg-purple-100 text-purple-600 rounded mr-1 text-xs font-bold text-center">C</span>
-                      CrewAI
-                    </span>
-                  ) : (
-                    agent.framework || 'Custom'
-                  )}
-                </div>
-                <div className="col-span-2 flex items-center text-sm text-gray-600">
-                  {new Date(agent.updateTime || Date.now()).toLocaleString()}
-                </div>
-                <div className="col-span-1 flex items-center justify-end">
-                  <div className="relative dropdown">
-                    <button 
-                      onClick={() => setOpenMenuId(openMenuId === agent.id ? null : agent.id)}
-                      className="p-1 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100"
-                    >
-                      <MoreHorizontal size={16} />
-                    </button>
-                    {openMenuId === agent.id && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
-                        <Link
-                          to={`/agents/${agent.name.split('/').pop()}`}
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        >
-                          View Details
-                        </Link>
-                        <Link
-                          to={`/playground/${agent.name.split('/').pop()}`}
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        >
-                          Test in Playground
-                        </Link>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteConfirmation(agent.name.split('/').pop());
-                            setOpenMenuId(null);
-                          }}
-                          className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                        >
-                          Delete
-                        </button>
-                      </div>
+                  <div className="col-span-2 flex items-center text-sm text-gray-600">
+                    {agent.framework === 'LANGGRAPH' ? (
+                      <span className="flex items-center">
+                        <span className="inline-block h-4 w-4 bg-blue-100 text-blue-600 rounded mr-1 text-xs font-bold text-center">G</span>
+                        LangGraph
+                      </span>
+                    ) : agent.framework === 'CREWAI' ? (
+                      <span className="flex items-center">
+                        <span className="inline-block h-4 w-4 bg-purple-100 text-purple-600 rounded mr-1 text-xs font-bold text-center">C</span>
+                        CrewAI
+                      </span>
+                    ) : (
+                      agent.framework || 'Custom'
                     )}
                   </div>
+                  <div className="col-span-2 flex items-center text-sm text-gray-600">
+                    {new Date(agent.updateTime || Date.now()).toLocaleString()}
+                  </div>
+                  <div className="col-span-2 flex items-center justify-end">
+                    {/* Quick Action Buttons */}
+                    <Link
+                      to={`/playground/${agentId}`}
+                      className="p-1 mr-1 text-blue-600 hover:text-blue-800 rounded-full hover:bg-blue-50"
+                      title="Test Agent"
+                    >
+                      <Play size={18} />
+                    </Link>
+                    
+                    {!isDeployed && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!isDeploying) {
+                            handleDeployAgent(agentId);
+                          }
+                        }}
+                        className="p-1 mr-1 text-green-600 hover:text-green-800 rounded-full hover:bg-green-50"
+                        title="Deploy Agent"
+                        disabled={isDeploying}
+                      >
+                        {isDeploying ? <LoadingSpinner size="small" /> : <Cloud size={18} />}
+                      </button>
+                    )}
+                    
+                    {/* Dropdown Menu */}
+                    <div className="relative dropdown">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(openMenuId === agentId ? null : agentId);
+                        }}
+                        className="p-1 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100"
+                      >
+                        <MoreHorizontal size={16} />
+                      </button>
+                      {openMenuId === agentId && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                          <Link
+                            to={`/agents/${agentId}`}
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          >
+                            View Details
+                          </Link>
+                          <Link
+                            to={`/playground/${agentId}`}
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          >
+                            Test in Playground
+                          </Link>
+                          {!isDeployed && (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeployAgent(agentId, 'AGENT_ENGINE');
+                                }}
+                                className="block w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-gray-100"
+                              >
+                                Deploy to Agent Engine
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeployAgent(agentId, 'CLOUD_RUN');
+                                }}
+                                className="block w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-gray-100"
+                              >
+                                Deploy to Cloud Run
+                              </button>
+                            </>
+                          )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteConfirmation(agentId);
+                              setOpenMenuId(null);
+                            }}
+                            className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </>
         )}
       </div>
+      
+      {/* Deployment Status Messages */}
+      {Object.entries(deploymentStatus).map(([agentId, status]) => {
+        if (status.status === 'error') {
+          return (
+            <div key={agentId} className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
+              <strong>Deployment Error:</strong> {status.error}
+              <button 
+                className="absolute top-0 bottom-0 right-0 px-4"
+                onClick={() => setDeploymentStatus(prev => {
+                  const newStatus = {...prev};
+                  delete newStatus[agentId];
+                  return newStatus;
+                })}
+              >
+                &times;
+              </button>
+            </div>
+          );
+        }
+        return null;
+      })}
       
       {/* Delete Confirmation Modal */}
       {deleteConfirmation && (
