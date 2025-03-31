@@ -1,5 +1,5 @@
 // src/pages/CreateAgent.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createLocalAgent } from '../services/agentEngineService';
 import FrameworkTemplates from '../components/FrameworkTemplates';
@@ -8,7 +8,6 @@ import CustomCodeEditor from '../components/CustomCodeEditor';
 
 const CreateAgent = ({ projectId, region }) => {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showCodeView, setShowCodeView] = useState(false);
   const [configYaml, setConfigYaml] = useState('');
@@ -142,7 +141,7 @@ const CreateAgent = ({ projectId, region }) => {
     });
   };  
 
-  const convertFormToYaml = () => {
+  const convertFormToYaml = useCallback(() => {
     // Convert current form data to YAML/JSON format
     const yamlData = {
       displayName: formData.displayName,
@@ -192,7 +191,7 @@ const CreateAgent = ({ projectId, region }) => {
     } catch (err) {
       setError('Failed to convert configuration to YAML format');
     }
-  };
+  }, [formData, projectId, region]);
 
   const parseConfigFromYaml = () => {
     try {
@@ -242,7 +241,7 @@ const CreateAgent = ({ projectId, region }) => {
     if (showCodeView) {
       convertFormToYaml();
     }
-  }, [formData, showCodeView, projectId, region]);
+  }, [formData, showCodeView, projectId, region, convertFormToYaml]);
 
   const handleCreateAgent = async () => {
     if (!projectId) {
