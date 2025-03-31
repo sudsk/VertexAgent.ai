@@ -4,6 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import { getAgent } from '../services/agentEngineService';
 import { Play, Clipboard, Info, ChevronRight, Table } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import AgentActions from '../components/AgentActions';
 
 const AgentDetails = ({ projectId, region }) => {
   const { agentId } = useParams();
@@ -12,28 +13,33 @@ const AgentDetails = ({ projectId, region }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [error, setError] = useState('');
 
+  const fetchAgentDetails = async () => {
+    if (!projectId || !agentId) {
+      setIsLoading(false);
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      const agentData = await getAgent(projectId, region, agentId);
+      setAgent(agentData);
+    } catch (error) {
+      console.error('Error fetching agent details:', error);
+      setError('Failed to load agent details. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   useEffect(() => {
-    const fetchAgentDetails = async () => {
-      if (!projectId || !agentId) {
-        setIsLoading(false);
-        return;
-      }
-      
-      try {
-        setIsLoading(true);
-        const agentData = await getAgent(projectId, region, agentId);
-        setAgent(agentData);
-      } catch (error) {
-        console.error('Error fetching agent details:', error);
-        setError('Failed to load agent details. Please try again.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchAgentDetails();
   }, [projectId, region, agentId]);
 
+  const handleDeploySuccess = () => {
+    // Refresh agent data after successful deployment
+    fetchAgentDetails();
+  };
+  
   if (!projectId) {
     return (
       <div className="w-full h-full flex items-center justify-center">
@@ -105,6 +111,18 @@ const AgentDetails = ({ projectId, region }) => {
         <ChevronRight className="h-4 w-4 text-gray-500 mr-2" />
         <h1 className="text-2xl font-bold">{agent.displayName || 'Unnamed Agent'}</h1>
       </div>
+
+      {/* Add the new AgentActions component */}
+      {agent && (
+        <div className="mb-6">
+          <AgentActions 
+            agent={agent} 
+            projectId={projectId} 
+            region={region}
+            onDeploySuccess={handleDeploySuccess}
+          />
+        </div>
+      )}
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         {/* Agent Status Card */}
