@@ -1,7 +1,7 @@
 import json
 from typing import Dict, List, Optional, Any
 from sqlalchemy.orm import Session
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from datetime import datetime
 import uuid
 from app.models.agent import CreateAgentRequest, AgentResponse
