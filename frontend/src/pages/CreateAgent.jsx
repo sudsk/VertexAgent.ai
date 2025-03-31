@@ -1,17 +1,18 @@
 // src/pages/CreateAgent.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createAgent, deployAgent, createLocalAgent } from '../services/agentEngineService';
+import { createLocalAgent } from '../services/agentEngineService';
 import FrameworkTemplates from '../components/FrameworkTemplates';
 import ToolDefinitionEditor from '../components/ToolDefinitionEditor';
+import CustomCodeEditor from '../components/CustomCodeEditor';
 
 const CreateAgent = ({ projectId, region }) => {
-  const [deploymentType, setDeploymentType] = useState('AGENT_ENGINE');
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showCodeView, setShowCodeView] = useState(false);
   const [configYaml, setConfigYaml] = useState('');
+  const [showCustomCode, setShowCustomCode] = useState(false);
   const [formData, setFormData] = useState({
     displayName: '',
     description: '',
@@ -29,10 +30,17 @@ const CreateAgent = ({ projectId, region }) => {
     crewAgentCount: 2,
     coordinationStrategy: 'sequential',
     agents: [],
-    tasks: []
+    tasks: [],
+    // Custom code editor fields
+    customCode: {
+      tools: '',
+      workflow: '',
+      handlers: '',
+      templates: ''
+    }
   });
   const [error, setError] = useState('');
-
+  
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({
@@ -41,6 +49,14 @@ const CreateAgent = ({ projectId, region }) => {
               name === 'temperature' ? parseFloat(value) : value
     });
   };
+
+  // Add handler for custom code
+  const handleCustomCodeChange = (newCode) => {
+    setFormData({
+      ...formData,
+      customCode: newCode
+    });
+  };  
 
   const handleToolsChange = (e) => {
     const { value, checked } = e.target;
@@ -143,7 +159,9 @@ const CreateAgent = ({ projectId, region }) => {
             text: formData.systemInstruction
           }
         ]
-      }
+      },
+      // Add custom code if present
+      customCode: formData.customCode
     };
 
     // Add framework-specific configuration
@@ -166,7 +184,7 @@ const CreateAgent = ({ projectId, region }) => {
         tasks: formData.tasks || []
       };
     }
-
+    
     // Convert to YAML string (using JSON for simplicity)
     try {
       const yamlString = JSON.stringify(yamlData, null, 2);
@@ -189,7 +207,13 @@ const CreateAgent = ({ projectId, region }) => {
         modelId: parsedConfig.model ? parsedConfig.model.split('/').pop() : 'gemini-1.5-pro',
         maxOutputTokens: parsedConfig.generationConfig?.maxOutputTokens || 1024,
         temperature: parsedConfig.generationConfig?.temperature || 0.2,
-        systemInstruction: parsedConfig.systemInstruction?.parts?.[0]?.text || ''
+        systemInstruction: parsedConfig.systemInstruction?.parts?.[0]?.text || '',
+        customCode: parsedConfig.customCode || {
+          tools: '',
+          workflow: '',
+          handlers: '',
+          templates: ''
+        }
       };
       
       // Extract framework-specific configuration
@@ -261,7 +285,9 @@ const CreateAgent = ({ projectId, region }) => {
                 text: formData.systemInstruction
               }
             ]
-          }
+          },
+          // Include custom code if it's been edited
+          customCode: formData.customCode
         };
 
         // Add model based on the selected framework
@@ -332,22 +358,29 @@ const CreateAgent = ({ projectId, region }) => {
       </div>
     );
   }
-
-  // Function has been removed - we now go directly to testing after creation
   
   return (
     <div className="container mx-auto px-4">
       <h1 className="text-2xl font-bold mb-6">Create a New Agent</h1>
       
-      {/* Add the toggle button for Code View */}
+      {/* Top navigation options */}
       <div className="mb-6 flex justify-end">
-        <button
-          type="button"
-          onClick={() => setShowCodeView(!showCodeView)}
-          className={`px-3 py-1 rounded-md ${showCodeView ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-        >
-          {showCodeView ? 'Form View' : 'Code View'}
-        </button>
+        <div className="flex space-x-2">
+          <button
+            type="button"
+            onClick={() => setShowCustomCode(!showCustomCode)}
+            className={`px-3 py-1 rounded-md ${showCustomCode ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+          >
+            {showCustomCode ? 'Hide Custom Code' : 'Show Custom Code'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowCodeView(!showCodeView)}
+            className={`px-3 py-1 rounded-md ${showCodeView ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+          >
+            {showCodeView ? 'Form View' : 'Code View'}
+          </button>
+        </div>
       </div>
       
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -462,6 +495,17 @@ const CreateAgent = ({ projectId, region }) => {
                 </p>
               </div>
 
+              {/* Show Custom Code Editor if enabled */}
+              {showCustomCode && (
+                <div className="mb-6">
+                  <CustomCodeEditor 
+                    framework={formData.framework}
+                    onChange={handleCustomCodeChange}
+                    initialCode={formData.customCode}
+                  />
+                </div>
+              )}
+              
               {(formData.framework === 'LANGGRAPH' || formData.framework === 'CREWAI') && (
                 <FrameworkTemplates 
                   framework={formData.framework} 
