@@ -37,7 +37,14 @@ const CustomCodeEditor = ({ framework, onChange, initialCode = {} }) => {
   
   // Update parent when code changes
   useEffect(() => {
-    onChange(code);
+    // Create a deep comparison to prevent unnecessary updates
+    const codeString = JSON.stringify(code);
+    const prevCodeString = React.useRef(codeString);
+    
+    if (codeString !== prevCodeString.current) {
+      prevCodeString.current = codeString;
+      onChange(code);
+    }
   }, [code, onChange]);
 
   const updateCode = (section, newCode) => {
