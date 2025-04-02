@@ -254,6 +254,7 @@ const CreateAgent = ({ projectId, region }) => {
     setError('');
 
     try {
+      console.log("Creating agent with projectId:", projectId);  // Add this line
       // Prepare agent data for API
       let agentData;
       
