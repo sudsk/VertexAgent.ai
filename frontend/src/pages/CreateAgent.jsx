@@ -244,7 +244,6 @@ const CreateAgent = ({ projectId, region }) => {
   }, [formData, showCodeView, projectId, region, convertFormToYaml]);
 
   const handleCreateAgent = async () => {
-    console.log("Current projectId:", projectId);  // Add this line    
     if (!projectId) {
       setError('Please set your Google Cloud Project ID first');
       return;
@@ -254,7 +253,6 @@ const CreateAgent = ({ projectId, region }) => {
     setError('');
 
     try {
-      console.log("Creating agent with projectId:", projectId);  // Add this line
       // Prepare agent data for API
       let agentData;
       
@@ -332,7 +330,7 @@ const CreateAgent = ({ projectId, region }) => {
       }
 
       // Create the agent locally without deployment
-      const createdAgent = await createLocalAgent(agentData);
+       const createdAgent = await createLocalAgent(agentData, projectId, region);
       
       // Set a flag in sessionStorage to indicate this is a newly created agent
       // This will be used by the playground to show a welcome message
