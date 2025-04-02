@@ -244,6 +244,7 @@ const CreateAgent = ({ projectId, region }) => {
   }, [formData, showCodeView, projectId, region, convertFormToYaml]);
 
   const handleCreateAgent = async () => {
+    console.log("Current projectId:", projectId);  // Add this line    
     if (!projectId) {
       setError('Please set your Google Cloud Project ID first');
       return;
