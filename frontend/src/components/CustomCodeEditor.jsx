@@ -34,16 +34,20 @@ const CustomCodeEditor = ({ framework, onChange, initialCode = {} }) => {
     handlers: initialCode.handlers || getDefaultHandlersCode(framework),
     templates: initialCode.templates || getDefaultTemplatesCode(framework)
   });
+
+  // Define a ref outside the useEffect
+  const prevCodeRef = useRef(null);
   
-  // Update parent when code changes
+  // Then in your useEffect
   useEffect(() => {
-    // Create a deep comparison to prevent unnecessary updates
+    // Convert current code to string for comparison
     const codeString = JSON.stringify(code);
-    const prevCodeString = React.useRef(codeString);
     
-    if (codeString !== prevCodeString.current) {
-      prevCodeString.current = codeString;
+    // Only call onChange if the code has actually changed
+    if (JSON.stringify(prevCodeRef.current) !== codeString) {
       onChange(code);
+      // Update the ref with current value
+      prevCodeRef.current = JSON.parse(codeString);
     }
   }, [code, onChange]);
 
