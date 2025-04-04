@@ -1,3 +1,4 @@
+// src/App.js - update the Routes section to add the edit route
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
@@ -35,6 +36,8 @@ function App() {
               <Route path="/agents" element={<AgentsList projectId={projectId} region={region} />} />
               <Route path="/agents/:agentId" element={<AgentDetails projectId={projectId} region={region} />} />
               <Route path="/create-agent" element={<CreateAgent projectId={projectId} region={region} />} />
+              {/* Add the new route for editing an agent */}
+              <Route path="/create-agent/:agentId" element={<CreateAgent projectId={projectId} region={region} />} />
               <Route path="/playground" element={<Playground projectId={projectId} region={region} />} />
               <Route path="/playground/:agentId" element={<Playground projectId={projectId} region={region} />} />
             </Routes>
