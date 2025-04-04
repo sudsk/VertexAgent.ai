@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getAgent } from '../services/agentEngineService';
-import { Play, Clipboard, Info, ChevronRight, Table } from 'lucide-react';
+import { Play, Clipboard, Info, ChevronRight, Table, Pencil } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import AgentActions from '../components/AgentActions';
 
@@ -115,12 +115,23 @@ const AgentDetails = ({ projectId, region }) => {
       {/* Add the new AgentActions component */}
       {agent && (
         <div className="mb-6">
-          <AgentActions 
-            agent={agent} 
-            projectId={projectId} 
-            region={region}
-            onDeploySuccess={handleDeploySuccess}
-          />
+          <div className="flex items-center space-x-2">
+            <AgentActions 
+              agent={agent} 
+              projectId={projectId} 
+              region={region}
+              onDeploySuccess={handleDeploySuccess}
+            />
+            
+            {/* Add Edit button */}
+            <Link 
+              to={`/create-agent/${agentId}`}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit Agent
+            </Link>
+          </div>
         </div>
       )}
       
