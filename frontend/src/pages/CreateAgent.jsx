@@ -1,14 +1,19 @@
 // src/pages/CreateAgent.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { createLocalAgent } from '../services/agentEngineService';
+import { useNavigate, useParams } from 'react-router-dom';
+import { createLocalAgent, getAgent, updateAgent } from '../services/agentEngineService';
 import FrameworkTemplates from '../components/FrameworkTemplates';
 import ToolDefinitionEditor from '../components/ToolDefinitionEditor';
 import CustomCodeEditor from '../components/CustomCodeEditor';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const CreateAgent = ({ projectId, region }) => {
   const navigate = useNavigate();
+  const { agentId } = useParams(); // Get agentId from URL if present (for editing)
+  const isEditMode = Boolean(agentId);
+  
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingAgent, setIsLoadingAgent] = useState(isEditMode);
   const [showCodeView, setShowCodeView] = useState(false);
   const [configYaml, setConfigYaml] = useState('');
   const [showCustomCode, setShowCustomCode] = useState(false);
@@ -39,6 +44,71 @@ const CreateAgent = ({ projectId, region }) => {
     }
   });
   const [error, setError] = useState('');
+  
+  // Fetch agent data if in edit mode
+  useEffect(() => {
+    if (isEditMode && projectId) {
+      setIsLoadingAgent(true);
+      getAgent(projectId, region, agentId)
+        .then(agentData => {
+          // Transform the agent data to match the form structure
+          const updatedFormData = {
+            displayName: agentData.displayName || '',
+            description: agentData.description || '',
+            framework: agentData.framework || 'CUSTOM',
+            modelId: agentData.model ? agentData.model.split('/').pop() : 'gemini-1.5-pro',
+            maxOutputTokens: agentData.generationConfig?.maxOutputTokens || 1024,
+            temperature: agentData.generationConfig?.temperature || 0.2,
+            systemInstruction: agentData.systemInstruction?.parts?.[0]?.text || '',
+            tools: agentData.tools || [],
+            // Extract framework-specific fields
+            ...extractFrameworkData(agentData),
+            // Custom code fields
+            customCode: agentData.customCode || {
+              tools: '',
+              workflow: '',
+              handlers: '',
+              templates: ''
+            }
+          };
+          
+          setFormData(updatedFormData);
+          
+          if (showCodeView) {
+            convertFormToYaml(updatedFormData);
+          }
+        })
+        .catch(err => {
+          console.error('Error loading agent for editing:', err);
+          setError('Failed to load agent details for editing');
+        })
+        .finally(() => {
+          setIsLoadingAgent(false);
+        });
+    }
+  }, [isEditMode, projectId, region, agentId, showCodeView]);
+
+  // Helper function to extract framework-specific data
+  const extractFrameworkData = (agentData) => {
+    const frameworkData = {};
+    
+    if (agentData.framework === 'LANGGRAPH' && agentData.frameworkConfig) {
+      frameworkData.graphType = agentData.frameworkConfig.graphType || 'sequential';
+      frameworkData.tools = agentData.frameworkConfig.tools || [];
+      frameworkData.stateDefinition = typeof agentData.frameworkConfig.stateDefinition === 'object' 
+        ? JSON.stringify(agentData.frameworkConfig.stateDefinition, null, 2) 
+        : '{}';
+      frameworkData.dataStoreId = agentData.frameworkConfig.dataStoreId;
+      frameworkData.dataStoreRegion = agentData.frameworkConfig.dataStoreRegion;
+    } 
+    else if (agentData.framework === 'CREWAI' && agentData.frameworkConfig) {
+      frameworkData.processType = agentData.frameworkConfig.processType || 'sequential';
+      frameworkData.agents = agentData.frameworkConfig.agents || [];
+      frameworkData.tasks = agentData.frameworkConfig.tasks || [];
+    }
+    
+    return frameworkData;
+  };
   
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -141,46 +211,46 @@ const CreateAgent = ({ projectId, region }) => {
     });
   };  
 
-  const convertFormToYaml = useCallback(() => {
+  const convertFormToYaml = useCallback((data = formData) => {
     // Convert current form data to YAML/JSON format
     const yamlData = {
-      displayName: formData.displayName,
-      description: formData.description || '',
-      framework: formData.framework,
-      model: `projects/${projectId}/locations/${region}/publishers/google/models/${formData.modelId}`,
+      displayName: data.displayName,
+      description: data.description || '',
+      framework: data.framework,
+      model: `projects/${projectId}/locations/${region}/publishers/google/models/${data.modelId}`,
       generationConfig: {
-        temperature: formData.temperature,
-        maxOutputTokens: formData.maxOutputTokens
+        temperature: data.temperature,
+        maxOutputTokens: data.maxOutputTokens
       },
       systemInstruction: {
         parts: [
           {
-            text: formData.systemInstruction
+            text: data.systemInstruction
           }
         ]
       },
       // Add custom code if present
-      customCode: formData.customCode
+      customCode: data.customCode
     };
 
     // Add framework-specific configuration
-    if (formData.framework === 'LANGGRAPH' && formData.graphType) {
+    if (data.framework === 'LANGGRAPH' && data.graphType) {
       yamlData.frameworkConfig = {
-        graphType: formData.graphType,
-        tools: formData.tools || [],
-        stateDefinition: formData.stateDefinition ? JSON.parse(formData.stateDefinition) : {}
+        graphType: data.graphType,
+        tools: data.tools || [],
+        stateDefinition: data.stateDefinition ? JSON.parse(data.stateDefinition) : {}
       };
       
-      if (formData.dataStoreId) {
-        yamlData.frameworkConfig.dataStoreId = formData.dataStoreId;
-        yamlData.frameworkConfig.dataStoreRegion = formData.dataStoreRegion;
+      if (data.dataStoreId) {
+        yamlData.frameworkConfig.dataStoreId = data.dataStoreId;
+        yamlData.frameworkConfig.dataStoreRegion = data.dataStoreRegion;
       }
     } 
-    else if (formData.framework === 'CREWAI') {
+    else if (data.framework === 'CREWAI') {
       yamlData.frameworkConfig = {
-        processType: formData.processType,
-        agents: formData.agents || [],
-        tasks: formData.tasks || []
+        processType: data.processType,
+        agents: data.agents || [],
+        tasks: data.tasks || []
       };
     }
     
@@ -243,7 +313,7 @@ const CreateAgent = ({ projectId, region }) => {
     }
   }, [formData, showCodeView, projectId, region, convertFormToYaml]);
 
-  const handleCreateAgent = async () => {
+  const handleSubmit = async () => {
     if (!projectId) {
       setError('Please set your Google Cloud Project ID first');
       return;
@@ -329,19 +399,29 @@ const CreateAgent = ({ projectId, region }) => {
         }
       }
 
-      // Create the agent locally without deployment
-       const createdAgent = await createLocalAgent(agentData, projectId, region);
+      let result;
       
-      // Set a flag in sessionStorage to indicate this is a newly created agent
-      // This will be used by the playground to show a welcome message
-      sessionStorage.setItem('newlyCreatedAgent', createdAgent.id);
-      
-      // Navigate directly to the playground to test the newly created agent
-      navigate(`/playground/${createdAgent.id}`);
+      if (isEditMode) {
+        // Update existing agent
+        result = await updateAgent(projectId, region, agentId, agentData);
+        
+        // Navigate to the agent details page after successful update
+        navigate(`/agents/${agentId}`);
+      } else {
+        // Create new agent
+        result = await createLocalAgent(agentData, projectId, region);
+        
+        // Set a flag in sessionStorage to indicate this is a newly created agent
+        // This will be used by the playground to show a welcome message
+        sessionStorage.setItem('newlyCreatedAgent', result.id);
+        
+        // Navigate directly to the playground to test the newly created agent
+        navigate(`/playground/${result.id}`);
+      }
       
     } catch (error) {
-      console.error('Error creating agent:', error);
-      setError(error.response?.data?.error?.message || 'Failed to create agent. Please try again.');
+      console.error(`Error ${isEditMode ? 'updating' : 'creating'} agent:`, error);
+      setError(error.response?.data?.error?.message || `Failed to ${isEditMode ? 'update' : 'create'} agent. Please try again.`);
     } finally {
       setIsLoading(false);
     }
@@ -358,9 +438,18 @@ const CreateAgent = ({ projectId, region }) => {
     );
   }
   
+  if (isLoadingAgent) {
+    return (
+      <div className="w-full h-full flex items-center justify-center p-8">
+        <LoadingSpinner />
+        <p className="ml-3">Loading agent data...</p>
+      </div>
+    );
+  }
+  
   return (
     <div className="container mx-auto px-4">
-      <h1 className="text-2xl font-bold mb-6">Create a New Agent</h1>
+      <h1 className="text-2xl font-bold mb-6">{isEditMode ? 'Edit Agent' : 'Create a New Agent'}</h1>
       
       {/* Top navigation options */}
       <div className="mb-6 flex justify-end">
@@ -388,7 +477,7 @@ const CreateAgent = ({ projectId, region }) => {
           <div className="flex mb-2">
             <div className="flex-1 border-t-4 border-blue-500 pt-4 pr-4">
               <h2 className="text-lg font-medium text-blue-600">
-                Configure Agent
+                {isEditMode ? 'Edit Agent Configuration' : 'Configure Agent'}
               </h2>
             </div>
           </div>
@@ -425,7 +514,7 @@ const CreateAgent = ({ projectId, region }) => {
               </button>
               
               <button
-                onClick={handleCreateAgent}
+                onClick={handleSubmit}
                 disabled={!configYaml.trim() || isLoading}
                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 inline-flex"
               >
@@ -435,10 +524,10 @@ const CreateAgent = ({ projectId, region }) => {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span>Creating...</span>
+                    <span>{isEditMode ? 'Updating...' : 'Creating...'}</span>
                   </>
                 ) : (
-                  <span>Create Agent</span>
+                  <span>{isEditMode ? 'Update Agent' : 'Create Agent'}</span>
                 )}
               </button>
             </div>
@@ -868,7 +957,7 @@ const CreateAgent = ({ projectId, region }) => {
               </div>
               <div className="flex justify-end">
                 <button
-                  onClick={handleCreateAgent}  
+                  onClick={handleSubmit}  
                   disabled={!formData.displayName || isLoading}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
@@ -878,10 +967,10 @@ const CreateAgent = ({ projectId, region }) => {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      <span>Creating...</span>
+                      <span>{isEditMode ? 'Updating...' : 'Creating...'}</span>
                     </>
                   ) : (
-                    <span>Create Agent</span>
+                    <span>{isEditMode ? 'Update Agent' : 'Create Agent'}</span>
                   )}
                 </button>
               </div>
