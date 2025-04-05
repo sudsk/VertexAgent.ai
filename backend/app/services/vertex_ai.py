@@ -279,3 +279,54 @@ class VertexAIService:
         except Exception as e:
             print(f"Error querying agent: {str(e)}")
             raise
+
+    async def update_agent(self, project_id: str, region: str, agent_path: str, agent_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Updates an existing agent in Vertex AI Agent Engine."""
+        vertexai.init(project=project_id, location=region)
+        
+        try:
+            # Get the existing agent
+            agent = agent_engines.get(agent_path)
+            
+            # Update fields
+            if "displayName" in agent_data:
+                agent.display_name = agent_data["displayName"]
+            
+            if "description" in agent_data:
+                agent.description = agent_data["description"]
+            
+            # Update model
+            if "model" in agent_data:
+                agent.model = agent_data["model"]
+            
+            # Update generation config
+            if "generationConfig" in agent_data:
+                if "temperature" in agent_data["generationConfig"]:
+                    agent.temperature = agent_data["generationConfig"]["temperature"]
+                if "maxOutputTokens" in agent_data["generationConfig"]:
+                    agent.max_output_tokens = agent_data["generationConfig"]["maxOutputTokens"]
+            
+            # Update system instruction
+            if "systemInstruction" in agent_data and "parts" in agent_data["systemInstruction"]:
+                parts = agent_data["systemInstruction"]["parts"]
+                if parts and "text" in parts[0]:
+                    agent.system_instruction = parts[0]["text"]
+            
+            # Update framework config
+            if "frameworkConfig" in agent_data:
+                agent.framework_config = agent_data["frameworkConfig"]
+            
+            # Save the changes
+            agent.update()
+            
+            return {
+                "name": agent.resource_name,
+                "displayName": agent.display_name,
+                "description": getattr(agent, "description", ""),
+                "state": getattr(agent, "state", "UPDATED"),
+                "updateTime": getattr(agent, "update_time", ""),
+                "framework": getattr(agent, "framework", "CUSTOM")
+            }
+        except Exception as e:
+            print(f"Error updating agent in Vertex AI: {str(e)}")
+            raise
