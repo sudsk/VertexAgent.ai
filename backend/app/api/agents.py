@@ -1083,10 +1083,16 @@ async def update_agent(
         if not effective_project_id:
             raise HTTPException(status_code=400, detail="Project ID is required")
 
+        # Handle agent IDs with local- prefix
+        actual_agent_id = agent_id
+        if agent_id.startswith("local-"):
+            actual_agent_id = agent_id[6:]  # Remove "local-" prefix
+            print(f"Stripped 'local-' prefix, using agent_id: {actual_agent_id}")
+
         # Check if agent exists in database
-        agent = db.query(Agent).filter(Agent.id == agent_id).first()
+        agent = db.query(Agent).filter(Agent.id == actual_agent_id).first()
         if not agent:
-            raise HTTPException(status_code=404, detail="Agent not found")
+            raise HTTPException(status_code=404, detail=f"Agent not found with ID: {actual_agent_id}")
         
         # Extract agent data from request
         display_name = request_data.get("displayName", agent.display_name)
@@ -1148,7 +1154,7 @@ async def update_agent(
         
         # Check if agent is already deployed to Vertex AI
         deployment = db.query(Deployment).filter(
-            Deployment.agent_id == agent_id,
+            Deployment.agent_id == actual_agent_id,
             Deployment.project_id == effective_project_id,
             Deployment.region == region,
             Deployment.status == "ACTIVE"
