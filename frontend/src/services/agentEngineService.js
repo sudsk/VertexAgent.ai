@@ -232,3 +232,15 @@ export const listAvailableTools = async () => {
     { name: 'retrieve', description: 'Retrieve documents from a knowledge base', type: 'RETRIEVAL' }
   ];
 };
+
+export const updateAgent = async (projectId, region, agentId, agentData) => {
+  try {
+    const response = await axios.put(`${API_URL}/agents/${agentId}`, agentData, {
+      params: { projectId, region }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating agent:', error);
+    throw error;
+  }
+};
