@@ -39,7 +39,8 @@ class Agent(Base):
     tools = Column(JSON, nullable=True)  # For storing tool definitions
     memory_enabled = Column(Boolean, default=False)  # Whether to use conversation memory
     prompt_template = Column(Text, nullable=True)  # For storing custom prompt templates
-    
+    custom_code = Column(JSON, nullable=True)  # Add this field for storing custom code
+        
     deployments = relationship("Deployment", back_populates="agent")
     tests = relationship("AgentTest", back_populates="agent")
 
