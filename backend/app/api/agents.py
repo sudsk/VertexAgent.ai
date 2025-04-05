@@ -1066,3 +1066,157 @@ async def execute_custom_tool(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error executing custom tool: {str(e)}")
+
+@router.put("/agents/{agent_id}")
+async def update_agent(
+    agent_id: str,
+    request_data: Dict[str, Any],
+    project_id: Optional[str] = Query(None),
+    projectId: Optional[str] = Query(None),
+    region: str = Query("us-central1"),
+    db: Session = Depends(get_db)
+) -> Dict:
+    """Updates an existing agent."""
+    try:
+        # Use projectId if project_id is not provided
+        effective_project_id = project_id or projectId
+        if not effective_project_id:
+            raise HTTPException(status_code=400, detail="Project ID is required")
+
+        # Check if agent exists in database
+        agent = db.query(Agent).filter(Agent.id == agent_id).first()
+        if not agent:
+            raise HTTPException(status_code=404, detail="Agent not found")
+        
+        # Extract agent data from request
+        display_name = request_data.get("displayName", agent.display_name)
+        description = request_data.get("description", agent.description)
+        framework = request_data.get("framework", agent.framework)
+        model_id = request_data.get("modelId", agent.model_id)
+        if not model_id and "model" in request_data:
+            # Extract modelId from full model path if present
+            model_parts = request_data["model"].split('/')
+            if len(model_parts) > 0:
+                model_id = model_parts[-1]
+        
+        # Extract generation config
+        temperature = request_data.get("generationConfig", {}).get("temperature", agent.temperature)
+        max_output_tokens = request_data.get("generationConfig", {}).get("maxOutputTokens", agent.max_output_tokens)
+        
+        # Extract system instruction
+        system_instruction = agent.system_instruction
+        if "systemInstruction" in request_data:
+            if isinstance(request_data["systemInstruction"], str):
+                system_instruction = request_data["systemInstruction"]
+            elif isinstance(request_data["systemInstruction"], dict) and "parts" in request_data["systemInstruction"]:
+                parts = request_data["systemInstruction"]["parts"]
+                if parts and "text" in parts[0]:
+                    system_instruction = parts[0]["text"]
+        
+        # Extract framework configuration
+        framework_config = request_data.get("frameworkConfig", agent.framework_config)
+        
+        # Extract tools
+        tools = request_data.get("tools", agent.tools)
+        
+        # Extract memory settings
+        memory_enabled = request_data.get("memoryEnabled", agent.memory_enabled)
+        
+        # Extract prompt template if available
+        prompt_template = request_data.get("promptTemplate", agent.prompt_template)
+        
+        # Extract custom code if available
+        custom_code = request_data.get("customCode", {})
+
+        # Update agent in database
+        agent.display_name = display_name
+        agent.description = description
+        agent.framework = framework
+        agent.model_id = model_id
+        agent.temperature = temperature
+        agent.max_output_tokens = max_output_tokens
+        agent.system_instruction = system_instruction
+        agent.framework_config = framework_config
+        agent.tools = tools
+        agent.memory_enabled = memory_enabled
+        agent.prompt_template = prompt_template
+        agent.custom_code = custom_code
+        agent.updated_at = datetime.utcnow()
+
+        db.commit()
+        db.refresh(agent)
+        
+        # Check if agent is already deployed to Vertex AI
+        deployment = db.query(Deployment).filter(
+            Deployment.agent_id == agent_id,
+            Deployment.project_id == effective_project_id,
+            Deployment.region == region,
+            Deployment.status == "ACTIVE"
+        ).first()
+        
+        # If agent is deployed and user requested deployment update, update the deployed agent
+        should_update_deployment = request_data.get("updateDeployment", False)
+        
+        if deployment and should_update_deployment:
+            # Prepare agent data for Vertex AI
+            agent_data = {
+                "displayName": display_name,
+                "description": description,
+                "generationConfig": {
+                    "temperature": temperature,
+                    "maxOutputTokens": max_output_tokens
+                },
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": system_instruction
+                        }
+                    ]
+                }
+            }
+            
+            # Add model
+            agent_data["model"] = f"projects/{effective_project_id}/locations/{region}/publishers/google/models/{model_id}"
+            
+            # Add framework-specific configuration
+            if framework:
+                agent_data["framework"] = framework
+                
+            if framework_config:
+                agent_data["frameworkConfig"] = framework_config
+                
+            if custom_code:
+                agent_data["customCode"] = custom_code
+            
+            # Update the deployed agent
+            try:
+                response = await vertex_service.update_agent(
+                    effective_project_id, 
+                    region, 
+                    deployment.resource_name, 
+                    agent_data
+                )
+                
+                # Update deployment record
+                deployment.updated_at = datetime.utcnow()
+                db.commit()
+            except Exception as update_error:
+                print(f"Error updating deployed agent: {str(update_error)}")
+                # Continue without failing - we've updated the local version at least
+        
+        return {
+            "id": agent.id,
+            "name": f"local-{agent.id}",
+            "displayName": agent.display_name,
+            "description": agent.description,
+            "state": agent.status,
+            "createTime": agent.created_at.isoformat(),
+            "updateTime": agent.updated_at.isoformat(),
+            "framework": agent.framework,
+            "message": "Agent updated successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating agent: {str(e)}")
