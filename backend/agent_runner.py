@@ -37,6 +37,16 @@ def load_custom_code():
     # Only attempt to load code if present
     if not custom_code:
         return code_modules
+
+    # Define globals to pass to the custom code
+    globals_dict = {
+        "model_id": model_id,
+        "temperature": temperature,
+        "max_output_tokens": max_output_tokens,
+        "system_instruction": system_instruction,
+        "framework": framework,
+        "framework_config": framework_config
+    }
     
     # Load each section of code into a module
     for section, code in custom_code.items():
@@ -49,12 +59,19 @@ def load_custom_code():
         module = importlib.util.module_from_spec(spec)
         sys.modules[module_name] = module
         
+        # Add the globals to the module
+        for key, value in globals_dict.items():
+            module.__dict__[key] = value
+            
         # Execute the code in the module's context
         try:
             exec(code, module.__dict__)
             code_modules[section] = module
         except Exception as e:
             print(f"Error loading custom {section} code: {str(e)}")
+            # Print the exact line that failed
+            import traceback
+            traceback.print_exc()            
     
     return code_modules
 
