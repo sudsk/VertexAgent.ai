@@ -405,7 +405,9 @@ async def get_agent(
                         }
                     ]
                 },
-                "frameworkConfig": agent.framework_config
+                "frameworkConfig": agent.framework_config,
+                "tools": agent.tools, 
+                "customCode": agent.custom_code  # Make sure custom code is included                
             }
         
         # If the agent is not in the database but looks like a Vertex AI resource path,
