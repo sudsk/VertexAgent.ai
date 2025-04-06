@@ -17,6 +17,9 @@ if agent_config_b64:
 else:
     agent_config = {}
 
+# Add this near the top after parsing agent_config
+print(f"Agent config: framework={framework}, custom_code keys={list(custom_code.keys() if custom_code else [])}, framework_config={framework_config}")
+
 # Extract agent parameters
 model_id = agent_config.get("modelId", "gemini-1.5-pro")
 temperature = agent_config.get("temperature", 0.2)
@@ -104,7 +107,9 @@ elif framework == "LANGGRAPH":
     from langchain_google_vertexai import ChatVertexAI
     from langgraph.graph import END, StateGraph, MessagesState
     from langgraph.prebuilt import ToolNode
-    
+
+    print("Processing LangGraph framework")
+
     # Get custom components
     tools = getattr(custom_modules.get('tools', {}), 'tools', [])
     
@@ -118,19 +123,24 @@ elif framework == "LANGGRAPH":
     # Use custom node handlers if provided
     if 'handlers' in custom_modules:
         call_model = getattr(custom_modules['handlers'], 'call_model', None)
+        print(f"Using custom call_model handler: {call_model}")        
     else:
         # Default handler
+        print("Using default call_model handler")        
         def call_model(state, config):
+            print(f"Calling model with state={state}, config={config}")            
             messages_with_system = [{"type": "system", "content": system_instruction or "You are a helpful AI assistant."}] + state["messages"]
             response = llm.invoke(messages_with_system, config)
             return {"messages": response}
     
     # Use custom workflow if provided, otherwise create a simple workflow
     if 'workflow' in custom_modules:
+        print("Using custom workflow")        
         # The workflow module should define and compile the agent
         agent = getattr(custom_modules['workflow'], 'agent', None)
     else:
         # Create a simple workflow
+        print("Creating default workflow")        
         workflow = StateGraph(MessagesState)
         workflow.add_node("agent", call_model)
         workflow.set_entry_point("agent")
