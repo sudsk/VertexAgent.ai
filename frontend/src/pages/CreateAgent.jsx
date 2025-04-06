@@ -340,6 +340,7 @@ const CreateAgent = ({ projectId, region }) => {
         agentData = {
           displayName: formData.displayName,
           description: formData.description || undefined,
+          framework: formData.framework, // Add this line          
           tools: [],
           codeInterpreterSettings: {
             mode: 'DISABLED'
