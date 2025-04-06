@@ -23,6 +23,7 @@ temperature = agent_config.get("temperature", 0.2)
 max_output_tokens = agent_config.get("maxOutputTokens", 1024)
 system_instruction = agent_config.get("systemInstruction", "")
 framework = agent_config.get("framework", "CUSTOM")
+framework_config = agent_config.get("frameworkConfig", {})  # Add this line
 custom_code = agent_config.get("customCode", {})
 
 # Custom code loading function
