@@ -92,6 +92,7 @@ async def test_agent_locally(
             temperature = agent.temperature
             max_output_tokens = agent.max_output_tokens
             system_instruction = agent.system_instruction
+            framework_config = agent.framework_config or {}            
         
             # Create a local agent instance based on framework type
             if framework == "LANGCHAIN":
