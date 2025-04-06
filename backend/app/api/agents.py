@@ -160,7 +160,7 @@ async def test_agent_locally(
                 # Format the response
                 response = {
                     "output": result[-1].content if result else "",
-                    "messages": [msg.to_dict() for msg in result] if result else []
+                    "messages": [{"content": msg.content} for msg in result] if result else []
                 }
             
             # Handle other frameworks similarly...
