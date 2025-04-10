@@ -1,9 +1,10 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 
-from app.api import agents
+from app.api import agents, files
 
 # Load environment variables
 load_dotenv()
@@ -26,6 +27,13 @@ app.add_middleware(
 
 # Include routers
 app.include_router(agents.router, prefix="/api", tags=["agents"])
+app.include_router(files.router, prefix="/api", tags=["files"])
+
+# Mount static files directory for uploaded files (if needed)
+UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
+if not os.path.exists(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 # Health check endpoint
 @app.get("/api/health", tags=["health"])
