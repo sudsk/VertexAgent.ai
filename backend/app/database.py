@@ -85,5 +85,22 @@ class CustomTool(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+# New model for uploaded files
+class UploadedFile(Base):
+    __tablename__ = "uploaded_files"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    session_id = Column(String, nullable=False, index=True)
+    original_filename = Column(String, nullable=False)
+    stored_filename = Column(String, nullable=False)
+    file_path = Column(String, nullable=False)
+    file_type = Column(String, nullable=True)
+    file_size = Column(Integer, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    
+    # Add relationship to agent tests if needed
+    # test_id = Column(String, ForeignKey("agent_tests.id"), nullable=True)
+    # test = relationship("AgentTest", back_populates="files")
+
 # Create all tables
 Base.metadata.create_all(bind=engine)
