@@ -188,10 +188,19 @@ async def process_request(request: Request):
         # Get the request data
         data = await request.json()
         query = data.get("query", "")
+        files = data.get("files", [])        
         
         if not query:
             return {"error": "Query is required"}
-        
+
+        # Build context with file information if files are provided
+        context = ""
+        if files:
+            context += "I have access to the following files:\n"
+            for i, file in enumerate(files):
+                context += f"{i+1}. {file.get('filename')} ({file.get('content_type')})\n"
+            context += "\nYou can refer to these files in your question.\n\n"
+            
         # Process with the appropriate framework
         if framework == "CUSTOM":
             # Create messages including system instruction if available
@@ -199,7 +208,13 @@ async def process_request(request: Request):
             if system_instruction:
                 messages.append({"role": "system", "content": system_instruction})
             messages.append({"role": "user", "content": query})
-            
+
+            # Add context as part of the user message if available
+            if context:
+                messages.append({"role": "user", "content": f"{context}{query}"})
+            else:
+                messages.append({"role": "user", "content": query})
+                
             # Generate response
             response = model.generate_content(
                 messages,
@@ -208,7 +223,8 @@ async def process_request(request: Request):
             
             return {
                 "textResponse": response.text,
-                "messages": [{"content": response.text}]
+                "messages": [{"content": response.text}],
+                "files": files
             }
         
         elif framework == "LANGCHAIN":
