@@ -32,6 +32,10 @@ async def test_agent_locally(
         
         if not query:
             raise HTTPException(status_code=400, detail="Query is required")
+
+        # Get file context if provided
+        session_id = request_data.get("sessionId")
+        files = request_data.get("files", [])
         
         # Start timer for metrics
         start_time = datetime.utcnow()
