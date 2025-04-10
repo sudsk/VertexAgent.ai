@@ -2,8 +2,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { testAgentLocally, createAgent, deployAgent, getAgent } from '../services/agentEngineService';
-import { MessageCircle, Send, Bot, Save } from 'lucide-react';
+import { uploadFiles, deleteSessionFiles } from '../services/fileService';
+import { MessageCircle, Send, Bot, Save, PaperclipIcon, FileUp } from 'lucide-react';
 import LoadingSpinner from './LoadingSpinner';
+import FileUpload from './FileUpload';
 
 const LocalAgentPlayground = ({ projectId, region }) => {
   const navigate = useNavigate();
@@ -15,6 +17,9 @@ const LocalAgentPlayground = ({ projectId, region }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
   const [error, setError] = useState('');
+  const [showFileUpload, setShowFileUpload] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
+  const [uploadedFiles, setUploadedFiles] = useState([]);  
   const messagesEndRef = useRef(null);
 
   // Effect to fetch agent details if agentId is provided
@@ -57,6 +62,44 @@ const LocalAgentPlayground = ({ projectId, region }) => {
     }
   }, [messages]);
 
+  // Handle file uploads
+  const handleFileUpload = async (files) => {
+    try {
+      setError('');
+      
+      // If we already have a session ID, use it, otherwise let the API create one
+      const uploadResult = await uploadFiles(files, sessionId);
+      
+      // Store the session ID for future uploads
+      setSessionId(uploadResult.session_id);
+      
+      // Update the list of uploaded files
+      setUploadedFiles(uploadResult.files);
+      
+      // Notify the user
+      setMessages(prev => [...prev, { 
+        role: 'system', 
+        content: `Uploaded ${files.length} file(s). You can now ask questions about the content.`
+      }]);
+      
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      setError('Failed to upload files: ' + (error.response?.data?.detail || error.message));
+    }
+  };
+
+  // Clean up uploaded files when component unmounts
+  useEffect(() => {
+    return () => {
+      // Delete session files when component unmounts if we have a session ID
+      if (sessionId) {
+        deleteSessionFiles(sessionId).catch(err => 
+          console.error('Error cleaning up session files:', err)
+        );
+      }
+    };
+  }, [sessionId]);
+  
   const handleTestQuery = async () => {
     if (!query.trim() || !agent || !projectId) return;
     
@@ -67,10 +110,12 @@ const LocalAgentPlayground = ({ projectId, region }) => {
       // Add user message
       setMessages(prev => [...prev, { role: 'user', content: query }]);
       
-      // Call the testAgentLocally service
+      // Call the testAgentLocally service with uploaded files information
       const response = await testAgentLocally(projectId, region, {
         ...agent,
-        query: query
+        query: query,
+        sessionId: sessionId,
+        files: uploadedFiles
       });
       
       // Add agent response
@@ -222,13 +267,38 @@ const LocalAgentPlayground = ({ projectId, region }) => {
         
         {/* Input Area */}
         <div className="border-t border-gray-200 p-4">
+          {showFileUpload && (
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="text-sm font-medium">Upload Files</h4>
+                <button 
+                  onClick={() => setShowFileUpload(false)}
+                  className="text-xs text-gray-500 hover:text-gray-700"
+                >
+                  Hide
+                </button>
+              </div>
+              <FileUpload onFileUpload={handleFileUpload} />
+            </div>
+          )}
+          
           <div className="flex items-center">
+            <button
+              type="button"
+              onClick={() => setShowFileUpload(!showFileUpload)}
+              className="p-2 text-gray-500 hover:text-blue-500 rounded-md hover:bg-gray-100 mr-2"
+              title="Upload files"
+            >
+              <FileUp size={18} />
+            </button>
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleTestQuery()}
-              placeholder="Type your test query here..."
+              placeholder={uploadedFiles.length > 0 
+                ? "Ask a question about the uploaded files..." 
+                : "Type your test query here or upload files..."}
               className="flex-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isProcessing}
             />
@@ -240,6 +310,17 @@ const LocalAgentPlayground = ({ projectId, region }) => {
               {isProcessing ? <LoadingSpinner size="small" /> : <Send size={18} />}
             </button>
           </div>
+          
+          {uploadedFiles.length > 0 && (
+            <div className="mt-2 flex flex-wrap">
+              {uploadedFiles.map((file, index) => (
+                <div key={index} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full mr-2 mt-1 flex items-center">
+                  <FileUp size={12} className="mr-1" />
+                  {file.filename}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
       
