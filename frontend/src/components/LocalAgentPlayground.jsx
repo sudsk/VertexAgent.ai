@@ -225,6 +225,16 @@ const LocalAgentPlayground = ({ projectId, region }) => {
               <div className="text-center">
                 <MessageCircle className="h-12 w-12 mx-auto mb-2" />
                 <p>Send a message to test the agent</p>
+                {uploadedFiles.length === 0 && (
+                  <p className="text-sm mt-2">
+                    Try uploading files to analyze with the agent
+                  </p>
+                )}
+                {uploadedFiles.length > 0 && (
+                  <p className="text-sm mt-2">
+                    You can now ask questions about your uploaded files
+                  </p>
+                )}
               </div>
             </div>
           ) : (
@@ -246,6 +256,23 @@ const LocalAgentPlayground = ({ projectId, region }) => {
                     }`}
                   >
                     {msg.content}
+                    {msg.files && msg.files.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-gray-200">
+                        <p className="text-xs font-medium">Referenced Files:</p>
+                        <div className="flex flex-wrap mt-1">
+                          {msg.files.map((file, fileIdx) => (
+                            <div 
+                              key={fileIdx} 
+                              className="text-xs bg-white text-blue-700 px-2 py-1 rounded mr-1 mt-1 flex items-center"
+                              title={`${file.filename} - ${file.content_type}`}
+                            >
+                              <FileUp size={10} className="mr-1" />
+                              {file.filename}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {msg.actions && msg.actions.length > 0 && (
                       <div className="mt-2 pt-2 border-t border-gray-200">
                         <p className="text-xs font-medium text-gray-500">Tool Actions:</p>
