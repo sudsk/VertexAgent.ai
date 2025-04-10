@@ -92,11 +92,12 @@ class UploadedFile(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     session_id = Column(String, nullable=False, index=True)
     original_filename = Column(String, nullable=False)
-    stored_filename = Column(String, nullable=False)
-    file_path = Column(String, nullable=False)
+    stored_filename = Column(String, nullable=False)  # Blob name in GCS
+    file_path = Column(String, nullable=False)        # GCS URI (gs://bucket/path)
     file_type = Column(String, nullable=True)
     file_size = Column(Integer, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    bucket_name = Column(String, nullable=True)       # GCS bucket name
     
     # Add relationship to agent tests if needed
     # test_id = Column(String, ForeignKey("agent_tests.id"), nullable=True)
